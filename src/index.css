@@ -1,0 +1,58 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button.nav-link,
+button.brand-link {
+  cursor: pointer;
+}
+
+.facturin-nav-icon {
+  display: inline-grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.app-content .card {
+  --bs-card-border-color: var(--bs-border-color);
+}
+
+.table > :not(caption) > * > * {
+  padding-block: 0.85rem;
+}
+
+.login-page #root {
+  display: grid;
+  width: 100%;
+  place-items: center;
+}
+
+.login-box {
+  width: min(92vw, 400px);
+}
+
+.login-logo span {
+  color: var(--bs-body-color);
+}
+
+@media (max-width: 575.98px) {
+  .app-content-header {
+    padding-bottom: 0.75rem;
+  }
+}
