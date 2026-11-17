@@ -1,13 +1,12 @@
 import { BILLING_API_URL } from "../config/api";
-
-const getStored = (key: string) =>
-  localStorage.getItem(key) ?? sessionStorage.getItem(key);
+import { refreshSession } from "./authService";
+import { isExpiring, readTokens } from "./tokenStore";
 
 const getAuthorizationHeader = (): string | null => {
-  const token = getStored("access_token");
-  if (!token) return null;
-  const type = getStored("token_type") || "Bearer";
-  return `${type.charAt(0).toUpperCase()}${type.slice(1).toLowerCase()} ${token}`;
+  const tokens = readTokens();
+  if (!tokens) return null;
+  const type = tokens.tokenType;
+  return `${type.charAt(0).toUpperCase()}${type.slice(1).toLowerCase()} ${tokens.accessToken}`;
 };
 
 // Se dispara cuando billing rechaza el token (401): App cierra la sesión.
@@ -39,10 +38,7 @@ export class ApiError extends Error {
   }
 }
 
-export const apiRequest = async <T = unknown>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> => {
+const send = (path: string, options: RequestInit): Promise<Response> => {
   const authorization = getAuthorizationHeader();
   const headers = new Headers(options.headers);
 
@@ -54,10 +50,33 @@ export const apiRequest = async <T = unknown>(
     headers.set("Authorization", authorization);
   }
 
-  const response = await fetch(`${BILLING_API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  return fetch(`${BILLING_API_URL}${path}`, { ...options, headers });
+};
+
+/** Si el access token está por vencer, lo renueva antes de usarlo. */
+const refreshIfExpiring = async (): Promise<void> => {
+  const tokens = readTokens();
+  if (!tokens?.refreshToken || !isExpiring(tokens)) return;
+
+  try {
+    await refreshSession();
+  } catch {
+    // Error de red al renovar: se intenta el pedido igual con el token actual.
+  }
+};
+
+export const apiRequest = async <T = unknown>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> => {
+  await refreshIfExpiring();
+
+  let response = await send(path, options);
+
+  // El token venció (o fue revocado): un único intento de renovar y repetir el pedido.
+  if (response.status === 401 && (await refreshSession())) {
+    response = await send(path, options);
+  }
 
   const body: unknown = await response.json().catch(() => null);
   const failedByPayload = isRecord(body) && body.success === false;
