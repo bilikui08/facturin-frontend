@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { FileText, LogOut, Receipt, Store, UserCog, Users } from "lucide-react";
+import { FileText, History, LogOut, Receipt, Store, UserCog, Users } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,6 +32,7 @@ const sections = [
   { path: "customers", label: "Clientes", icon: Users },
   { path: "sale-points", label: "Puntos de venta", icon: Store },
   { path: "billing-profile", label: "Datos de facturación", icon: UserCog },
+  { path: "audit", label: "Auditoría", icon: History },
 ];
 
 interface DashboardProps {

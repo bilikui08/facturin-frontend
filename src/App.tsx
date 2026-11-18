@@ -14,6 +14,7 @@ const BillingProfile = lazy(() => import("./components/BillingProfile"));
 const Customers = lazy(() => import("./components/Customers"));
 const Invoices = lazy(() => import("./components/Invoices"));
 const InvoiceSearch = lazy(() => import("./components/InvoiceSearch"));
+const AuditLog = lazy(() => import("./components/AuditLog"));
 const SalePoints = lazy(() => import("./components/SalePoints"));
 
 type ProfileStatus = "checking" | "missing" | "ready" | "error";
@@ -160,6 +161,7 @@ const App = () => {
           <Route path="customers" element={<Customers />} />
           <Route path="sale-points" element={<SalePoints />} />
           <Route path="billing-profile" element={<BillingProfile />} />
+        <Route path="audit" element={<AuditLog />} />
         </Route>
 
         <Route path="*" element={<Navigate to={home} replace />} />
