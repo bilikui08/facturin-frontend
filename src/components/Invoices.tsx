@@ -7,6 +7,7 @@ import InvoiceNumberCell from "./InvoiceNumberCell";
 import { formatDate, isCreditNote } from "../utils/invoiceFormat";
 import type { InvoiceRow } from "../types/invoice";
 import DateInput from "./DateInput";
+import { exceedsMaxAmount, invoiceTotal, limitDecimals, round2 } from "../utils/amounts";
 import type { Resource } from "../types/crud";
 
 interface ItemForm {
@@ -142,10 +143,8 @@ const Invoices = () => {
   const removeItem = (index: number) =>
     setItems((list) => (list.length > 1 ? list.filter((_, i) => i !== index) : list));
 
-  const total = items.reduce(
-    (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0),
-    0,
-  );
+  // Mismo cálculo que el backend: cada línea a 2 decimales y el total como suma de líneas
+  const total = invoiceTotal(items);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -155,6 +154,11 @@ const Invoices = () => {
 
     if (header.service_to < header.service_from) {
       setError("El período facturado hasta no puede ser anterior al período desde.");
+      setSaving(false);
+      return;
+    }
+    if (exceedsMaxAmount(total)) {
+      setError("El total supera el máximo que admite ARCA (13 dígitos enteros).");
       setSaving(false);
       return;
     }
@@ -176,9 +180,9 @@ const Invoices = () => {
       items: items.map((item) => ({
         code: item.code || null,
         description: item.description,
-        quantity: Number(item.quantity),
+        quantity: round2(Number(item.quantity)),
         unit: item.unit || null,
-        price: Number(item.price),
+        price: round2(Number(item.price)),
       })),
     };
 
@@ -291,14 +295,14 @@ const Invoices = () => {
                 </div>
                 <div className="col-12 col-md-4">
                   <label className="form-label small">Descripción</label>
-                  <input className="form-control" value={item.description} required
+                  <input className="form-control" maxLength={255} value={item.description} required
                     onChange={(e) => updateItem(index, "description", e.target.value)} />
                 </div>
                 <div className="col-4 col-md-1">
                   <label className="form-label small">Cant.</label>
-                  <input className="form-control" type="number" min="1" step="any" required
+                  <input className="form-control" type="number" min="1" step="0.01" required
                     value={item.quantity}
-                    onChange={(e) => updateItem(index, "quantity", e.target.value)} />
+                    onChange={(e) => updateItem(index, "quantity", limitDecimals(e.target.value))} />
                 </div>
                 <div className="col-4 col-md-1">
                   <label className="form-label small">Unidad</label>
@@ -309,7 +313,7 @@ const Invoices = () => {
                   <label className="form-label small">Precio</label>
                   <input className="form-control" type="number" min="0" step="0.01" required
                     value={item.price}
-                    onChange={(e) => updateItem(index, "price", e.target.value)} />
+                    onChange={(e) => updateItem(index, "price", limitDecimals(e.target.value))} />
                 </div>
                 <div className="col-12 col-md-2 text-md-end">
                   <button className="btn btn-outline-danger btn-sm" type="button"

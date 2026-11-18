@@ -7,8 +7,8 @@ interface ApiUrls {
 
 const environments: Record<Environment, ApiUrls> = {
   local: {
-    auth: "http://localhost:8080/auth/api",
-    billing: "http://localhost:8083/api",
+    auth: "http://localhost:8083/api",
+    billing: "http://localhost:8080/api",
   },
   production: {
     auth: "https://auth.gustavoluis.me/api",
