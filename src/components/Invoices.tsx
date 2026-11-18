@@ -8,6 +8,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { apiRequest } from "../services/apiClient";
 import InvoiceTable from "./InvoiceTable";
 import type { InvoiceRow } from "../types/invoice";
+import { formatMoney } from "../utils/invoiceFormat";
 import DateInput from "./DateInput";
 import FormField from "./FormField";
 import LoadingBlock from "./LoadingBlock";
@@ -35,6 +36,10 @@ interface HeaderForm {
   /** Opcional: si queda vacío, el backend usa la fecha de hoy */
   issue_date: string;
 }
+
+/** Cantidad de comprobantes recientes que se muestran debajo del formulario. */
+const RECENT_INVOICES = 10;
+const RECENT_INVOICES_PATH = `/invoices?per_page=${RECENT_INVOICES}`;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null;
@@ -76,9 +81,6 @@ const emptyHeader = (): HeaderForm => {
   };
 };
 
-const money = (value: number) =>
-  value.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
-
 const optionLabel = (r: Resource) =>
   String(r.name ?? r.description ?? r.label ?? r.code ?? r.id);
 
@@ -96,7 +98,7 @@ const Invoices = () => {
 
   const loadInvoices = async () => {
     try {
-      setInvoices(normalize(await apiRequest("/invoices?per_page=10")));
+      setInvoices(normalize(await apiRequest(RECENT_INVOICES_PATH)));
     } catch {
       setInvoices([]);
     }
@@ -108,7 +110,7 @@ const Invoices = () => {
       apiRequest("/customers"),
       apiRequest("/sale-points"),
       apiRequest("/payment-conditions"),
-      apiRequest("/invoices?per_page=10").catch(() => []),
+      apiRequest(RECENT_INVOICES_PATH).catch(() => []),
     ])
       .then(([c, s, p, i]) => {
         if (!current) return;
@@ -338,7 +340,7 @@ const Invoices = () => {
           <CardFooter className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
             <div className="flex items-baseline gap-2">
               <span className="text-sm text-muted-foreground">Total</span>
-              <strong className="text-xl tabular-nums">{money(total)}</strong>
+              <strong className="text-xl tabular-nums">{formatMoney(total)}</strong>
             </div>
             <Button type="submit" disabled={saving}>
               {saving ? "Emitiendo..." : "Emitir comprobante"}
@@ -349,7 +351,9 @@ const Invoices = () => {
 
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
-          <CardTitle className="text-base">Últimos comprobantes emitidos</CardTitle>
+          <CardTitle className="text-base">
+            Últimos {RECENT_INVOICES} comprobantes emitidos
+          </CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/invoices-list">Ver todos / buscar</Link>
           </Button>

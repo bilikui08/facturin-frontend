@@ -43,6 +43,13 @@ describe("Invoices (facturar)", () => {
     apiRequest.mockReset();
   });
 
+  it("el título dice cuántos comprobantes recientes muestra y se piden esa cantidad", async () => {
+    await setup();
+
+    expect(screen.getByText("Últimos 10 comprobantes emitidos")).toBeTruthy();
+    expect(apiRequest).toHaveBeenCalledWith("/invoices?per_page=10");
+  });
+
   it("no deja escribir más de 2 decimales en precio y cantidad", async () => {
     const user = await setup();
     const price = screen.getByLabelText("Precio") as HTMLInputElement;

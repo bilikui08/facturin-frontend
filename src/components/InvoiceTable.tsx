@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { InvoiceRow } from "../types/invoice";
 import { cn } from "@/lib/utils";
-import { formatDate, isCreditNote } from "../utils/invoiceFormat";
+import { formatDate, formatMoney, isCreditNote } from "../utils/invoiceFormat";
 import AfipEnvironmentBadge from "./AfipEnvironmentBadge";
 import InvoiceActions from "./InvoiceActions";
 import InvoiceNumberCell from "./InvoiceNumberCell";
@@ -15,9 +15,11 @@ interface InvoiceTableProps {
   dimmed?: boolean;
 }
 
+/** Importe en formato argentino ($ 1.500,50). Las notas de crédito se muestran en negativo. */
 const totalText = (invoice: InvoiceRow): string => {
   if (invoice.total == null) return "—";
-  return isCreditNote(invoice) ? `−${Number(invoice.total).toFixed(2)}` : String(invoice.total);
+  const amount = formatMoney(Math.abs(Number(invoice.total)));
+  return isCreditNote(invoice) ? `−${amount}` : amount;
 };
 
 /** Listado de comprobantes emitidos (usado en "Facturar" y en la búsqueda). */
