@@ -6,6 +6,32 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import FormField from "./FormField";
+import LoadingBlock from "./LoadingBlock";
+import StatusAlert from "./StatusAlert";
 import {
   createResource,
   deleteResource,
@@ -79,6 +105,7 @@ const CrudSection = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Resource | null>(null);
 
   const loadItems = useCallback(async () => {
     setIsLoading(true);
@@ -199,10 +226,6 @@ const CrudSection = ({
   };
 
   const handleDelete = async (item: Resource) => {
-    if (!window.confirm(`¿Querés eliminar este ${singularName.toLowerCase()}?`)) {
-      return;
-    }
-
     setError("");
     setSuccessMessage("");
 
@@ -215,61 +238,66 @@ const CrudSection = ({
     }
   };
 
+  const columnValue = (item: Resource, field: FieldConfig): string =>
+    field.optionsEndpoint
+      ? getOptionLabel(
+          (referenceOptions[field.name] || []).find(
+            (option) => String(option.id) === String(item[field.name]),
+          ) || { id: String(item[field.name] || "—") },
+        )
+      : String(item[field.name] || "—");
+
   return (
-    <section>
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-        <div>
-          <h2 className="h5 mb-1">Gestión de {title.toLowerCase()}</h2>
-          <p className="text-secondary mb-0">
-            Creá, consultá y actualizá tus {title.toLowerCase()}.
-          </p>
-        </div>
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted-foreground">
+          Creá, consultá y actualizá tus {title.toLowerCase()}.
+        </p>
         {(!single || items.length === 0) && !isFormOpen && (
-          <button className="btn btn-primary" type="button" onClick={openCreateForm}>
+          <Button type="button" onClick={openCreateForm}>
+            <Plus />
             Agregar {singularName.toLowerCase()}
-          </button>
+          </Button>
         )}
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {successMessage && (
-        <div className="alert alert-success">{successMessage}</div>
-      )}
+      {error && <StatusAlert kind="error">{error}</StatusAlert>}
+      {successMessage && <StatusAlert kind="success">{successMessage}</StatusAlert>}
 
       {isFormOpen && (
-        <div className="card card-primary card-outline mb-4">
-          <div className="card-header">
-            <h3 className="card-title">
+        <Card>
+          <CardHeader>
+            <CardTitle>
               {editingId !== null ? "Editar" : "Agregar"} {singularName.toLowerCase()}
-            </h3>
-          </div>
-          <div className="card-body">
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit}>
-              <div className="row g-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 {fields.map((field) => (
-                  <div className={field.columnClass || "col-12 col-md-6"} key={field.name}>
-                    <label className="form-label" htmlFor={`${endpoint}-${field.name}`}>
-                      {field.label}
-                    </label>
+                  <FormField
+                    key={field.name}
+                    label={field.label}
+                    htmlFor={`${endpoint}-${field.name}`}
+                    className={field.fullWidth ? "md:col-span-2" : undefined}
+                  >
                     {field.optionsEndpoint ? (
-                      <select
-                        className="form-select"
+                      <NativeSelect
                         id={`${endpoint}-${field.name}`}
                         name={field.name}
                         value={form[field.name]}
                         onChange={handleChange}
                         required={field.required}
                       >
-                        <option value="">Seleccionar...</option>
+                        <NativeSelectOption value="">Seleccionar...</NativeSelectOption>
                         {(referenceOptions[field.name] || []).map((option) => (
-                          <option key={option.id} value={option.id}>
+                          <NativeSelectOption key={option.id} value={option.id}>
                             {getOptionLabel(option)}
-                          </option>
+                          </NativeSelectOption>
                         ))}
-                      </select>
+                      </NativeSelect>
                     ) : (
-                      <input
-                        className="form-control"
+                      <Input
                         id={`${endpoint}-${field.name}`}
                         name={field.name}
                         type={field.type || "text"}
@@ -279,85 +307,106 @@ const CrudSection = ({
                         placeholder={field.placeholder}
                       />
                     )}
-                  </div>
+                  </FormField>
                 ))}
               </div>
-              <div className="d-flex gap-2 mt-4 pt-3 border-top">
-                <button className="btn btn-primary" type="submit" disabled={isSaving}>
+              <div className="mt-6 flex gap-2 border-t pt-4">
+                <Button type="submit" disabled={isSaving}>
                   {isSaving ? "Guardando..." : "Guardar"}
-                </button>
-                <button className="btn btn-secondary" type="button" onClick={closeForm}>
+                </Button>
+                <Button variant="secondary" type="button" onClick={closeForm}>
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="card card-primary card-outline">
-        <div className="card-header">
-          <h3 className="card-title">Listado de {title.toLowerCase()}</h3>
-        </div>
-        <div className="card-body p-0">
+      <Card className="gap-0 overflow-hidden py-0">
+        <CardHeader className="border-b py-4 [.border-b]:pb-4">
+          <CardTitle className="text-base">Listado de {title.toLowerCase()}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-5 text-center">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Cargando...</span>
-              </div>
-            </div>
+            <LoadingBlock />
           ) : items.length === 0 ? (
-            <p className="p-5 text-center text-secondary mb-0">No hay registros.</p>
+            <p className="p-10 text-center text-muted-foreground">No hay registros.</p>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  {fields.map((field) => (
+                    <TableHead key={field.name}>{field.label}</TableHead>
+                  ))}
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
                     {fields.map((field) => (
-                      <th key={field.name}>{field.label}</th>
+                      <TableCell key={field.name}>{columnValue(item, field)}</TableCell>
                     ))}
-                    <th className="text-end">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      {fields.map((field) => (
-                        <td key={field.name}>
-                          {field.optionsEndpoint
-                            ? getOptionLabel(
-                                (referenceOptions[field.name] || []).find(
-                                  (option) =>
-                                    String(option.id) === String(item[field.name]),
-                                ) || { id: String(item[field.name] || "—") },
-                              )
-                            : String(item[field.name] || "—")}
-                        </td>
-                      ))}
-                      <td className="text-end text-nowrap">
-                        <button
-                          className="btn btn-sm btn-outline-primary me-2"
+                    <TableCell className="text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
                           type="button"
                           onClick={() => openEditForm(item)}
                         >
+                          <Pencil />
                           Editar
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           type="button"
-                          onClick={() => handleDelete(item)}
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setPendingDelete(item)}
                         >
+                          <Trash2 />
                           Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {singularName.toLowerCase()}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará este {singularName.toLowerCase()}. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                const item = pendingDelete;
+                setPendingDelete(null);
+                if (item) void handleDelete(item);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 };

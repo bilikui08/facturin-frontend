@@ -2,9 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import App from './App'
-import './assets/admin-lte/v4.9.1/css/adminlte.min.css'
-import './assets/admin-lte/v4.9.1/js/adminlte.esm.js'
+import { applyTheme, getStoredTheme } from './lib/theme'
 import './index.css'
+
+// Antes de renderizar, para que no parpadee el tema claro si el usuario eligió el oscuro
+applyTheme(getStoredTheme())
 
 const rootElement = document.getElementById('root')
 

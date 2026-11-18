@@ -14,7 +14,8 @@ export interface FieldConfig {
   type?: HTMLInputTypeAttribute | "select";
   required?: boolean;
   placeholder?: string;
-  columnClass?: string;
+  /** Ocupa todo el ancho del formulario (por defecto, media fila). */
+  fullWidth?: boolean;
   optionsEndpoint?: string;
 }
 

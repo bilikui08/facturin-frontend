@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import type { InvoiceRow } from "../types/invoice";
 import { formatInvoiceNumber, isCreditNote } from "../utils/invoiceFormat";
 
@@ -16,21 +17,22 @@ const InvoiceNumberCell = ({ invoice }: InvoiceNumberCellProps) => {
     : null;
 
   return (
-    <>
-      <span className="text-nowrap">{formatInvoiceNumber(invoice)}</span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="whitespace-nowrap font-mono text-sm">{formatInvoiceNumber(invoice)}</span>
       {isCreditNote(invoice) && (
-        <span className="badge text-bg-danger ms-2 align-middle"
-          title={originalNumber ? `Anula la factura ${originalNumber}` : "Nota de crédito"}>
+        <Badge
+          variant="destructive"
+          title={originalNumber ? `Anula la factura ${originalNumber}` : "Nota de crédito"}
+        >
           Nota de crédito
-        </span>
+        </Badge>
       )}
       {creditNumber && (
-        <span className="badge text-bg-secondary ms-2 align-middle"
-          title={`Anulada por la nota de crédito ${creditNumber}`}>
+        <Badge variant="secondary" title={`Anulada por la nota de crédito ${creditNumber}`}>
           Anulada
-        </span>
+        </Badge>
       )}
-    </>
+    </div>
   );
 };
 

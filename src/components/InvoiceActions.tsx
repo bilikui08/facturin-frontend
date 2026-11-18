@@ -1,4 +1,16 @@
 import { useState } from "react";
+import { Ban, FileDown, ShieldCheck } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { apiRequest } from "../services/apiClient";
 import type { InvoiceRow } from "../types/invoice";
 import { formatInvoiceNumber, formatMoney, isCreditNote } from "../utils/invoiceFormat";
@@ -20,7 +32,8 @@ const MATCH_LABELS: Record<string, string> = {
   total: "Total",
 };
 
-const ACTION_BUTTON_STYLE = { width: 78, display: "inline-block", textAlign: "center" } as const;
+// Ancho fijo para que las columnas queden alineadas en todas las filas
+const ACTION_BUTTON_CLASS = "w-[7rem] justify-center";
 
 interface InvoiceActionsProps {
   invoice: InvoiceRow;
@@ -35,6 +48,7 @@ const InvoiceActions = ({ invoice, onChanged }: InvoiceActionsProps) => {
   // Se puede anular una factura autorizada que todavía no tiene nota de crédito
   const canAnnul = hasCae && !isCreditNote(invoice) && !invoice.credit_note;
   const [annulling, setAnnulling] = useState(false);
+  const [confirmingAnnul, setConfirmingAnnul] = useState(false);
   const [annulError, setAnnulError] = useState("");
 
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -64,12 +78,6 @@ const InvoiceActions = ({ invoice, onChanged }: InvoiceActionsProps) => {
   };
 
   const handleAnnul = async () => {
-    const confirmed = window.confirm(
-      `¿Anular la factura ${formatInvoiceNumber(invoice)} por ${formatMoney(invoice.total)}?\n\n` +
-        "Se emitirá una Nota de Crédito C por el total ante AFIP. Esta acción no se puede deshacer.",
-    );
-    if (!confirmed) return;
-
     setAnnulError("");
     setAnnulling(true);
     try {
@@ -98,17 +106,19 @@ const InvoiceActions = ({ invoice, onChanged }: InvoiceActionsProps) => {
   const renderVerification = () => {
     if (!verification) return null;
     if (verification.status === "error") {
-      return <div className="small text-danger mt-1">{verification.message}</div>;
+      return <div className="mt-1 text-xs text-destructive">{verification.message}</div>;
     }
     const { data } = verification;
     if (data.verified) {
-      return <div className="small text-success mt-1">✔ Verificado en AFIP (aprobado)</div>;
+      return (
+        <div className="mt-1 text-xs font-medium text-success">✔ Verificado en AFIP (aprobado)</div>
+      );
     }
     const differences = Object.entries(data.matches)
       .filter(([, ok]) => !ok)
       .map(([key]) => MATCH_LABELS[key] ?? key);
     return (
-      <div className="small text-warning-emphasis mt-1">
+      <div className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
         {data.approved ? "⚠ AFIP aprobó el comprobante, pero hay diferencias" : "⚠ AFIP no lo aprobó"}
         {differences.length > 0 && `: ${differences.join(", ")}`}
       </div>
@@ -118,31 +128,57 @@ const InvoiceActions = ({ invoice, onChanged }: InvoiceActionsProps) => {
   // Tres posiciones fijas (PDF, Verificar, Anular) con el mismo ancho en todas las filas:
   // cuando "Anular" no aplica queda el hueco, así las columnas se mantienen alineadas.
   return (
-    <div className="d-flex flex-column align-items-end">
-      <div className="d-flex gap-1 justify-content-end">
-        <button className="btn btn-outline-primary btn-sm" type="button"
-          style={ACTION_BUTTON_STYLE} title="Imprimir PDF"
-          disabled={pdfLoading} onClick={handlePrintPdf}>
+    <div className="flex flex-col items-end">
+      <div className="flex justify-end gap-1.5">
+        <Button variant="outline" size="sm" type="button" className={ACTION_BUTTON_CLASS}
+          title="Imprimir PDF" disabled={pdfLoading} onClick={handlePrintPdf}>
+          <FileDown />
           {pdfLoading ? "..." : "PDF"}
-        </button>
-        <button className="btn btn-outline-secondary btn-sm" type="button"
-          style={ACTION_BUTTON_STYLE} title="Verificar el comprobante en AFIP"
-          disabled={verifying || !hasCae} onClick={handleVerify}>
+        </Button>
+        <Button variant="outline" size="sm" type="button" className={ACTION_BUTTON_CLASS}
+          title="Verificar el comprobante en AFIP" disabled={verifying || !hasCae}
+          onClick={handleVerify}>
+          <ShieldCheck />
           {verifying ? "..." : "Verificar"}
-        </button>
+        </Button>
         {canAnnul ? (
-          <button className="btn btn-outline-danger btn-sm" type="button"
-            style={ACTION_BUTTON_STYLE} title="Anular con una nota de crédito"
-            disabled={annulling} onClick={handleAnnul}>
+          <Button variant="outline" size="sm" type="button"
+            className={`${ACTION_BUTTON_CLASS} text-destructive hover:text-destructive`}
+            title="Anular con una nota de crédito" disabled={annulling}
+            onClick={() => setConfirmingAnnul(true)}>
+            <Ban />
             {annulling ? "..." : "Anular"}
-          </button>
+          </Button>
         ) : (
-          <span style={ACTION_BUTTON_STYLE} aria-hidden="true" />
+          <span className={ACTION_BUTTON_CLASS} aria-hidden="true" />
         )}
       </div>
-      {annulError && <div className="small text-danger mt-1 text-end">{annulError}</div>}
-      {pdfError && <div className="small text-danger mt-1 text-end">{pdfError}</div>}
+      {annulError && <div className="mt-1 text-right text-xs text-destructive">{annulError}</div>}
+      {pdfError && <div className="mt-1 text-right text-xs text-destructive">{pdfError}</div>}
       {renderVerification()}
+
+      <AlertDialog open={confirmingAnnul} onOpenChange={setConfirmingAnnul}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              ¿Anular la factura {formatInvoiceNumber(invoice)}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Se emitirá una Nota de Crédito C por {formatMoney(invoice.total)} ante AFIP, por el
+              total del comprobante. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => void handleAnnul()}
+            >
+              Anular comprobante
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

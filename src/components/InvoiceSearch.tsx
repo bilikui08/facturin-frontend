@@ -1,12 +1,17 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiRequest } from "../services/apiClient";
 import type { Resource } from "../types/crud";
 import type { InvoiceRow, Paginated } from "../types/invoice";
-import AfipEnvironmentBadge from "./AfipEnvironmentBadge";
-import InvoiceNumberCell from "./InvoiceNumberCell";
-import { formatDate, isCreditNote } from "../utils/invoiceFormat";
 import DateInput from "./DateInput";
-import InvoiceActions from "./InvoiceActions";
+import FormField from "./FormField";
+import InvoiceTable from "./InvoiceTable";
+import LoadingBlock from "./LoadingBlock";
+import StatusAlert from "./StatusAlert";
 
 interface Filters {
   customer: string;
@@ -147,183 +152,160 @@ const InvoiceSearch = () => {
   const invoices = result?.data ?? [];
 
   return (
-    <section>
-      <div className="card card-primary card-outline mb-4">
-        <div className="card-header">
-          <h3 className="card-title">Búsqueda de comprobantes</h3>
-        </div>
+    <section className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Búsqueda de comprobantes</CardTitle>
+        </CardHeader>
         <form onSubmit={handleSubmit}>
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-12 col-md-4">
-                <label className="form-label" htmlFor="f-customer">Cliente (nombre o documento)</label>
-                <input id="f-customer" className="form-control" name="customer"
-                  value={form.customer} onChange={handleChange} maxLength={100} />
-              </div>
-              <div className="col-12 col-md-4">
-                <label className="form-label" htmlFor="f-sp">Punto de venta</label>
-                <select id="f-sp" className="form-select" name="sale_point_id"
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <FormField label="Cliente (nombre o documento)" htmlFor="f-customer"
+                className="sm:col-span-2 lg:col-span-2">
+                <Input id="f-customer" name="customer" value={form.customer}
+                  onChange={handleChange} maxLength={100} />
+              </FormField>
+              <FormField label="Punto de venta" htmlFor="f-sp">
+                <NativeSelect id="f-sp" name="sale_point_id"
                   value={form.sale_point_id} onChange={handleChange}>
-                  <option value="">Todos</option>
+                  <NativeSelectOption value="">Todos</NativeSelectOption>
                   {salePoints.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <NativeSelectOption key={s.id} value={s.id}>
                       {String(s.number ?? s.id)}{s.name ? ` - ${s.name}` : ""}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-                </select>
-              </div>
-              <div className="col-12 col-md-4">
-                <label className="form-label" htmlFor="f-pc">Condición de venta</label>
-                <select id="f-pc" className="form-select" name="payment_condition_id"
+                </NativeSelect>
+              </FormField>
+              <FormField label="Condición de venta" htmlFor="f-pc">
+                <NativeSelect id="f-pc" name="payment_condition_id"
                   value={form.payment_condition_id} onChange={handleChange}>
-                  <option value="">Todas</option>
+                  <NativeSelectOption value="">Todas</NativeSelectOption>
                   {paymentConditions.map((p) => (
-                    <option key={p.id} value={p.id}>{optionLabel(p)}</option>
+                    <NativeSelectOption key={p.id} value={p.id}>
+                      {optionLabel(p)}
+                    </NativeSelectOption>
                   ))}
-                </select>
-              </div>
+                </NativeSelect>
+              </FormField>
 
-              <div className="col-12 col-md-3">
-                <label className="form-label" htmlFor="f-from">Fecha de emisión desde</label>
+              <FormField label="Fecha de emisión desde" htmlFor="f-from">
                 <DateInput id="f-from" name="issue_date_from" value={form.issue_date_from}
                   onChange={handleDateChange} />
-              </div>
-              <div className="col-12 col-md-3">
-                <label className="form-label" htmlFor="f-to">Fecha de emisión hasta</label>
+              </FormField>
+              <FormField label="Fecha de emisión hasta" htmlFor="f-to">
                 <DateInput id="f-to" name="issue_date_to" value={form.issue_date_to}
                   onChange={handleDateChange} />
-              </div>
-              <div className="col-6 col-md-3">
-                <label className="form-label" htmlFor="f-number">Nº de comprobante</label>
-                <input id="f-number" className="form-control" name="number" type="number" min="1"
+              </FormField>
+              <FormField label="Nº de comprobante" htmlFor="f-number">
+                <Input id="f-number" name="number" type="number" min="1"
                   value={form.number} onChange={handleChange} />
-              </div>
-              <div className="col-6 col-md-3">
-                <label className="form-label" htmlFor="f-cae">CAE</label>
-                <input id="f-cae" className="form-control" name="cae" maxLength={20}
+              </FormField>
+              <FormField label="CAE" htmlFor="f-cae">
+                <Input id="f-cae" name="cae" maxLength={20}
                   value={form.cae} onChange={handleChange} />
-              </div>
+              </FormField>
 
-              <div className="col-12 col-md-3">
-                <label className="form-label" htmlFor="f-env">Ambiente de AFIP</label>
-                <select id="f-env" className="form-select" name="afip_environment"
+              <FormField label="Ambiente de AFIP" htmlFor="f-env">
+                <NativeSelect id="f-env" name="afip_environment"
                   value={form.afip_environment} onChange={handleChange}>
-                  <option value="">Todos</option>
-                  <option value="produccion">Producción</option>
-                  <option value="homologacion">Homologación (pruebas)</option>
-                </select>
-              </div>
-              <div className="col-12 col-md-3">
-                <label className="form-label" htmlFor="f-vt">Tipo de comprobante</label>
-                <select id="f-vt" className="form-select" name="voucher_type_id"
+                  <NativeSelectOption value="">Todos</NativeSelectOption>
+                  <NativeSelectOption value="produccion">Producción</NativeSelectOption>
+                  <NativeSelectOption value="homologacion">Homologación (pruebas)</NativeSelectOption>
+                </NativeSelect>
+              </FormField>
+              <FormField label="Tipo de comprobante" htmlFor="f-vt">
+                <NativeSelect id="f-vt" name="voucher_type_id"
                   value={form.voucher_type_id} onChange={handleChange}>
-                  <option value="">Todos</option>
+                  <NativeSelectOption value="">Todos</NativeSelectOption>
                   {voucherTypes.map((v) => (
-                    <option key={v.id} value={v.id}>{String(v.description ?? v.id)}</option>
+                    <NativeSelectOption key={v.id} value={v.id}>
+                      {String(v.description ?? v.id)}
+                    </NativeSelectOption>
                   ))}
-                </select>
-              </div>
-              <div className="col-6 col-md-3">
-                <label className="form-label" htmlFor="f-tfrom">Importe desde</label>
-                <input id="f-tfrom" className="form-control" name="total_from" type="number"
-                  min="0" step="0.01" value={form.total_from} onChange={handleChange} />
-              </div>
-              <div className="col-6 col-md-3">
-                <label className="form-label" htmlFor="f-tto">Importe hasta</label>
-                <input id="f-tto" className="form-control" name="total_to" type="number"
-                  min="0" step="0.01" value={form.total_to} onChange={handleChange} />
-              </div>
+                </NativeSelect>
+              </FormField>
+              <FormField label="Importe desde" htmlFor="f-tfrom">
+                <Input id="f-tfrom" name="total_from" type="number" min="0" step="0.01"
+                  value={form.total_from} onChange={handleChange} />
+              </FormField>
+              <FormField label="Importe hasta" htmlFor="f-tto">
+                <Input id="f-tto" name="total_to" type="number" min="0" step="0.01"
+                  value={form.total_to} onChange={handleChange} />
+              </FormField>
             </div>
-          </div>
-          <div className="card-footer d-flex gap-2">
-            <button className="btn btn-primary" type="submit" disabled={loading}>Buscar</button>
-            <button className="btn btn-outline-secondary" type="button" onClick={handleClear}>
+          </CardContent>
+          <CardFooter className="mt-6 flex gap-2 border-t pt-6">
+            <Button type="submit" disabled={loading}>
+              <Search />
+              Buscar
+            </Button>
+            <Button variant="outline" type="button" onClick={handleClear}>
+              <X />
               Limpiar
-            </button>
-          </div>
+            </Button>
+          </CardFooter>
         </form>
-      </div>
+      </Card>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && <StatusAlert kind="error">{error}</StatusAlert>}
 
-      <div className="card card-primary card-outline">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h3 className="card-title">Comprobantes emitidos</h3>
-          <span className="ms-auto text-secondary small">
+      <Card className="gap-0 overflow-hidden py-0">
+        <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
+          <CardTitle className="text-base">Comprobantes emitidos</CardTitle>
+          <span className="text-sm text-muted-foreground">
             {result ? `${result.total} resultado${result.total === 1 ? "" : "s"}` : ""}
           </span>
-        </div>
-        <div className="card-body p-0">
+        </CardHeader>
+        <CardContent className="p-0">
           {loading && !result ? (
-            <div className="p-5 text-center">
-              <div className="spinner-border text-primary" role="status" />
-            </div>
+            <LoadingBlock />
           ) : invoices.length === 0 ? (
-            <p className="p-4 text-center text-secondary mb-0">
+            <p className="p-8 text-center text-muted-foreground">
               No se encontraron comprobantes.
             </p>
           ) : (
-            <div className="table-responsive" style={{ opacity: loading ? 0.6 : 1 }}>
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th>Fecha</th><th>Comprobante</th><th>Ambiente</th><th>Cliente</th>
-                    <th className="text-end">Total</th><th>CAE</th>
-                    <th>F. Vto. CAE</th><th className="text-end">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((i) => (
-                    <tr key={i.id}>
-                      <td>{formatDate(i.issue_date ?? i.created_at)}</td>
-                      <td><InvoiceNumberCell invoice={i} /></td>
-                        <td><AfipEnvironmentBadge environment={i.afip_environment} /></td>
-                      <td>{i.customer?.name ?? "—"}</td>
-                      <td className={`text-end ${isCreditNote(i) ? "text-danger" : ""}`}>
-                        {i.total == null ? "—" : isCreditNote(i) ? `−${Number(i.total).toFixed(2)}` : String(i.total)}
-                      </td>
-                      <td>{i.cae ?? "—"}</td>
-                      <td>{formatDate(i.cae_expiration)}</td>
-                      <td className="text-end">
-                        <InvoiceActions invoice={i} onChanged={() => setReloadToken((n) => n + 1)} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <InvoiceTable
+              invoices={invoices}
+              customerName={(i) => i.customer?.name ?? "—"}
+              onChanged={() => setReloadToken((n) => n + 1)}
+              dimmed={loading}
+            />
           )}
-        </div>
+        </CardContent>
 
         {result && result.total > 0 && (
-          <div className="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div className="d-flex align-items-center gap-2">
-              <label className="small text-secondary mb-0" htmlFor="f-size">Por página</label>
-              <select id="f-size" className="form-select form-select-sm w-auto" value={perPage}
+          <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t py-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground" htmlFor="f-size">Por página</label>
+              <NativeSelect id="f-size" size="sm" wrapperClassName="w-20" value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}>
-                {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <span className="small text-secondary">
+                {PAGE_SIZES.map((n) => (
+                  <NativeSelectOption key={n} value={n}>{n}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <span className="text-sm text-muted-foreground">
                 {result.from}–{result.to} de {result.total}
               </span>
             </div>
-            <div className="btn-group">
-              <button className="btn btn-outline-secondary btn-sm" type="button"
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" type="button"
                 disabled={loading || page <= 1} onClick={() => setPage((p) => p - 1)}>
-                « Anterior
-              </button>
-              <span className="btn btn-outline-secondary btn-sm disabled">
+                <ChevronLeft />
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
                 Página {result.current_page} de {result.last_page}
               </span>
-              <button className="btn btn-outline-secondary btn-sm" type="button"
+              <Button variant="outline" size="sm" type="button"
                 disabled={loading || page >= result.last_page}
                 onClick={() => setPage((p) => p + 1)}>
-                Siguiente »
-              </button>
+                Siguiente
+                <ChevronRight />
+              </Button>
             </div>
-          </div>
+          </CardFooter>
         )}
-      </div>
+      </Card>
     </section>
   );
 };

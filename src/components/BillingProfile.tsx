@@ -4,7 +4,14 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import DateInput from "./DateInput";
+import FormField from "./FormField";
+import LoadingBlock from "./LoadingBlock";
+import StatusAlert from "./StatusAlert";
 import { apiRequest } from "../services/apiClient";
 import { createResource, updateResource } from "../services/crudService";
 import type { FormValues, ResourceId } from "../types/crud";
@@ -14,7 +21,7 @@ interface ProfileField {
   label: string;
   type: "text" | "date" | "select";
   required?: boolean;
-  columnClass?: string;
+  fullWidth?: boolean;
   optionsEndpoint?: string;
 }
 
@@ -53,7 +60,7 @@ const profileFields = [
   {
     name: "address",
     label: "Domicilio fiscal",
-    columnClass: "col-12",
+    fullWidth: true,
     required: true,
     type: "text",
   },
@@ -212,59 +219,51 @@ const BillingProfile = ({ onSaved }: BillingProfileProps = {}) => {
 
   if (loading) {
     return (
-      <div className="card card-primary card-outline">
-        <div className="card-body p-5 text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Cargando...</span>
-          </div>
-          <p className="text-secondary mt-3 mb-0">Cargando perfil de facturación...</p>
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <LoadingBlock message="Cargando perfil de facturación..." />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <section className="card card-primary card-outline">
-      <div className="card-header">
-        <h2 className="card-title">Información fiscal</h2>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Información fiscal</CardTitle>
+      </CardHeader>
       <form onSubmit={handleSubmit}>
-        <div className="card-body">
-          <p className="text-secondary mb-4">
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
             Estos datos se utilizarán para emitir tus comprobantes.
           </p>
-          {error && <div className="alert alert-danger">{error}</div>}
-          {successMessage && (
-            <div className="alert alert-success">{successMessage}</div>
-          )}
-          <div className="row g-3">
+          {error && <StatusAlert kind="error">{error}</StatusAlert>}
+          {successMessage && <StatusAlert kind="success">{successMessage}</StatusAlert>}
+          <div className="grid gap-4 md:grid-cols-2">
             {profileFields.map((field) => (
-              <div className={field.columnClass || "col-12 col-md-6"} key={field.name}>
-                <label className="form-label" htmlFor={`billing-profile-${field.name}`}>
-                  {field.label}
-                </label>
+              <FormField
+                key={field.name}
+                label={field.label}
+                htmlFor={`billing-profile-${field.name}`}
+                className={field.fullWidth ? "md:col-span-2" : undefined}
+              >
                 {field.type === "select" ? (
-                  <select
-                    className="form-select"
+                  <NativeSelect
                     id={`billing-profile-${field.name}`}
                     name={field.name}
                     value={form[field.name]}
                     onChange={handleChange}
                     required={field.required}
                   >
-                    <option value="">Seleccione una opción</option>
-                    {(field.name === "document_type_id"
-                      ? documentTypes.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))
-                      : taxConditions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        )))}
-                  </select>
+                    <NativeSelectOption value="">Seleccione una opción</NativeSelectOption>
+                    {(field.name === "document_type_id" ? documentTypes : taxConditions).map(
+                      (option) => (
+                        <NativeSelectOption key={option.id} value={option.id}>
+                          {option.name}
+                        </NativeSelectOption>
+                      ),
+                    )}
+                  </NativeSelect>
                 ) : field.type === "date" ? (
                   <DateInput
                     id={`billing-profile-${field.name}`}
@@ -276,8 +275,7 @@ const BillingProfile = ({ onSaved }: BillingProfileProps = {}) => {
                     required={field.required}
                   />
                 ) : (
-                  <input
-                    className="form-control"
+                  <Input
                     id={`billing-profile-${field.name}`}
                     type={field.type}
                     name={field.name}
@@ -286,17 +284,17 @@ const BillingProfile = ({ onSaved }: BillingProfileProps = {}) => {
                     required={field.required}
                   />
                 )}
-              </div>
+              </FormField>
             ))}
           </div>
-        </div>
-        <div className="card-footer">
-          <button className="btn btn-primary" type="submit" disabled={isSaving}>
+        </CardContent>
+        <CardFooter className="mt-6 border-t pt-6">
+          <Button type="submit" disabled={isSaving}>
             {isSaving ? "Guardando..." : "Guardar cambios"}
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       </form>
-    </section>
+    </Card>
   );
 };
 

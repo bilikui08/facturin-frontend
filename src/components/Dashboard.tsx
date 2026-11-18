@@ -1,13 +1,37 @@
-import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
-import logo from "../assets/admin-lte/v4.9.1/assets/img/AdminLTELogo.png";
+import { FileText, LogOut, Receipt, Store, UserCog, Users } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import ThemeToggle from "./ThemeToggle";
 
 const sections = [
-  { path: "invoices", label: "Facturar", icon: "$" },
-  { path: "invoices-list", label: "Comprobantes emitidos", icon: "L" },
-  { path: "customers", label: "Clientes", icon: "C" },
-  { path: "sale-points", label: "Puntos de venta", icon: "P" },
-  { path: "billing-profile", label: "Datos de facturación", icon: "F" },
+  { path: "invoices", label: "Facturar", icon: Receipt },
+  { path: "invoices-list", label: "Comprobantes emitidos", icon: FileText },
+  { path: "customers", label: "Clientes", icon: Users },
+  { path: "sale-points", label: "Puntos de venta", icon: Store },
+  { path: "billing-profile", label: "Datos de facturación", icon: UserCog },
 ];
 
 interface DashboardProps {
@@ -16,111 +40,87 @@ interface DashboardProps {
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const { pathname } = useLocation();
-  const activeSectionLabel = sections.find(
-    (section) => pathname.endsWith(`/${section.path}`),
-  )?.label ?? "Dashboard";
-
-  useEffect(() => {
-    const previousClassName = document.body.className;
-    document.body.className = "layout-fixed sidebar-expand-lg bg-body-tertiary";
-
-    return () => {
-      document.body.className = previousClassName;
-    };
-  }, []);
+  const activeSectionLabel =
+    sections.find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
 
   return (
-    <div className="app-wrapper">
-      <nav className="app-header navbar navbar-expand bg-body">
-        <div className="container-fluid">
-          <ul className="navbar-nav">
-            <li className="nav-item">
-              <button
-                aria-label="Abrir o cerrar menú"
-                className="nav-link border-0 bg-transparent"
-                data-lte-toggle="sidebar"
-                type="button"
-              >
-                <span className="fs-5" aria-hidden="true">☰</span>
-              </button>
-            </li>
-            <li className="nav-item d-none d-md-block">
-              <span className="nav-link fw-semibold">Panel de administración</span>
-            </li>
-          </ul>
-          <ul className="navbar-nav ms-auto">
-            <li className="nav-item">
-              <button className="btn btn-outline-danger btn-sm" type="button" onClick={onLogout}>
-                Cerrar sesión
-              </button>
-            </li>
-          </ul>
-        </div>
-      </nav>
-
-      <aside className="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
-        <div className="sidebar-brand">
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
           <NavLink
-            className="brand-link border-0 bg-transparent w-100"
             to="/dashboard/invoices"
+            className="flex items-center gap-2.5 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           >
-            <img className="brand-image opacity-75 shadow" src={logo} alt="" />
-            <span className="brand-text fw-light">Facturín</span>
+            <span className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <Receipt className="size-4" aria-hidden="true" />
+            </span>
+            <span className="text-base font-semibold tracking-tight">Facturín</span>
           </NavLink>
-        </div>
-        <div className="sidebar-wrapper">
-          <nav className="mt-2" aria-label="Navegación principal">
-            <ul className="nav sidebar-menu flex-column" role="menu">
-              {sections.map((section) => (
-                <li className="nav-item" key={section.path}>
-                  <NavLink
-                    className={({ isActive }) =>
-                      `nav-link w-100 text-start ${isActive ? "active" : ""}`
-                    }
-                    to={section.path}
-                  >
-                    <span className="nav-icon facturin-nav-icon" aria-hidden="true">
-                      {section.icon}
-                    </span>
-                    <p>{section.label}</p>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </aside>
+        </SidebarHeader>
 
-      <main className="app-main">
-        <div className="app-content-header">
-          <div className="container-fluid">
-            <div className="row align-items-center">
-              <div className="col-sm-6">
-                <h1 className="mb-0 fs-3">{activeSectionLabel}</h1>
-              </div>
-              <div className="col-sm-6 d-none d-sm-block">
-                <ol className="breadcrumb float-sm-end mb-0">
-                  <li className="breadcrumb-item">Facturín</li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    {activeSectionLabel}
-                  </li>
-                </ol>
-              </div>
-            </div>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Menú</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu aria-label="Navegación principal">
+                {sections.map(({ path, label, icon: Icon }) => (
+                  <SidebarMenuItem key={path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname.endsWith(`/${path}`)}
+                      tooltip={label}
+                    >
+                      <NavLink to={path}>
+                        <Icon aria-hidden="true" />
+                        <span>{label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={onLogout} tooltip="Cerrar sesión">
+                <LogOut aria-hidden="true" />
+                <span>Cerrar sesión</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <SidebarTrigger className="-ml-1" aria-label="Abrir o cerrar menú" />
+          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden sm:block">Facturín</BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden sm:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{activeSectionLabel}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
           </div>
-        </div>
-        <div className="app-content">
-          <div className="container-fluid pb-4">
+        </header>
+
+        <main className="flex-1 p-4 md:p-6">
+          <div className="mx-auto w-full max-w-7xl space-y-6">
+            <h1 className="text-2xl font-semibold tracking-tight">{activeSectionLabel}</h1>
             <Outlet />
           </div>
-        </div>
-      </main>
-
-      <footer className="app-footer">
-        <strong>Facturín</strong>
-        <span className="ms-2 text-secondary">Gestión simple de facturación.</span>
-      </footer>
-    </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

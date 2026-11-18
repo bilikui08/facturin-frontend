@@ -19,7 +19,7 @@ const customerFields = [
   {
     name: "address",
     label: "Domicilio",
-    columnClass: "col-12",
+    fullWidth: true,
   },
 ] satisfies FieldConfig[];
 

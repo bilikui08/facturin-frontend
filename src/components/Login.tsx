@@ -1,5 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { AtSign, Lock, Receipt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { login } from "../services/authService";
+import StatusAlert from "./StatusAlert";
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -11,15 +19,6 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const previousClassName = document.body.className;
-    document.body.className = "login-page bg-body-secondary";
-
-    return () => {
-      document.body.className = previousClassName;
-    };
-  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,77 +36,85 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   };
 
   return (
-    <main className="login-box">
-      <h1 className="login-logo">
-        <span>
-          <b>Factur</b>ín
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <Receipt className="size-5" aria-hidden="true" />
         </span>
-      </h1>
-      <div className="card shadow-sm">
-        <div className="card-body login-card-body">
-          <p className="login-box-msg">Ingresá para administrar tu facturación</p>
+        <span className="text-2xl font-semibold tracking-tight">Facturín</span>
+      </div>
 
-          <form onSubmit={handleSubmit}>
-            <label htmlFor="email" className="visually-hidden">Email</label>
-            <div className="input-group mb-3">
-              <input
-                type="email"
-                className="form-control"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nombre@ejemplo.com"
-                required
-              />
-              <span className="input-group-text" aria-hidden="true">@</span>
+      <Card className="w-full max-w-sm shadow-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-lg">Ingresá a tu cuenta</CardTitle>
+          <CardDescription>Administrá tu facturación electrónica</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <AtSign
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="email"
+                  id="email"
+                  className="pl-9"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nombre@ejemplo.com"
+                  autoComplete="username"
+                  required
+                />
+              </div>
             </div>
 
-            <label htmlFor="password" className="visually-hidden">Contraseña</label>
-            <div className="input-group mb-3">
-              <input
-                type="password"
-                className="form-control"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Ingrese su contraseña"
-                required
-              />
-              <span className="input-group-text" aria-hidden="true">●</span>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <div className="relative">
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="password"
+                  id="password"
+                  className="pl-9"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Ingresá tu contraseña"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-check mb-3">
-              <input
-                className="form-check-input"
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Checkbox
                 id="remember"
                 checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
+                onCheckedChange={(checked) => setRemember(checked === true)}
               />
-              <label className="form-check-label" htmlFor="remember">
+              <Label htmlFor="remember" className="font-normal">
                 Recordarme
-              </label>
+              </Label>
             </div>
 
-            {error && (
-              <div className="alert alert-danger py-2" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <StatusAlert kind="error">{error}</StatusAlert>}
 
-            <div className="d-grid">
-              <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                {isLoading ? "Ingresando..." : "Ingresar"}
-              </button>
-            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Spinner aria-label="Ingresando" />}
+              {isLoading ? "Ingresando..." : "Ingresar"}
+            </Button>
           </form>
-        </div>
-      </div>
-      <p className="text-center text-secondary small mt-3 mb-0">
-        Panel de gestión de Facturín
-      </p>
+        </CardContent>
+      </Card>
+
+      <p className="text-center text-xs text-muted-foreground">Panel de gestión de Facturín</p>
     </main>
   );
-}
+};
 
 export default Login;
