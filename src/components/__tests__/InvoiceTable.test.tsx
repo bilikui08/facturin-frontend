@@ -40,6 +40,18 @@ describe("InvoiceTable", () => {
     expect(screen.getByText(/−.*25\.495,87/)).toBeTruthy();
   });
 
+  it("muestra quién emitió cada comprobante", () => {
+    render(
+      <InvoiceTable
+        invoices={[row({ id: 5, total: "100.00", created_by: 7 }), row({ id: 6, cbte_nro: 76, total: "50.00", created_by: null })]}
+        customerName={() => "Cliente"}
+      />,
+    );
+
+    expect(screen.getByRole("columnheader", { name: "Emitido por" })).toBeTruthy();
+    expect(screen.getByText("Usuario 7")).toBeTruthy();
+  });
+
   it("muestra un guion si el comprobante no tiene total", () => {
     render(<InvoiceTable invoices={[row({ id: 4, total: null })]} customerName={() => "Cliente"} />);
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);

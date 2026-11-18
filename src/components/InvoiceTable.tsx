@@ -32,6 +32,7 @@ const InvoiceTable = ({ invoices, customerName, onChanged, dimmed }: InvoiceTabl
           <TableHead>Comprobante</TableHead>
           <TableHead>Ambiente</TableHead>
           <TableHead>Cliente</TableHead>
+          <TableHead>Emitido por</TableHead>
           <TableHead className="text-right">Total</TableHead>
           <TableHead>CAE</TableHead>
           <TableHead>F. Vto. CAE</TableHead>
@@ -49,6 +50,9 @@ const InvoiceTable = ({ invoices, customerName, onChanged, dimmed }: InvoiceTabl
               <AfipEnvironmentBadge environment={i.afip_environment} />
             </TableCell>
             <TableCell>{customerName(i)}</TableCell>
+            <TableCell className="whitespace-nowrap text-muted-foreground" title="Usuario que emitió el comprobante">
+              {i.created_by == null ? "—" : `Usuario ${i.created_by}`}
+            </TableCell>
             <TableCell
               className={cn("text-right tabular-nums", isCreditNote(i) && "text-destructive")}
             >

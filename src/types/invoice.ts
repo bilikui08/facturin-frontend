@@ -14,6 +14,8 @@ export interface InvoiceRow {
   credit_note?: { id: number | string; cbte_nro: number | string } | null;
   /** Factura anulada por esta nota de crédito */
   associated_invoice?: { id: number | string; cbte_nro: number | string } | null;
+  /** Id del usuario (de auth-api) que emitió el comprobante. Si es una nota de crédito, quien anuló. */
+  created_by?: number | null;
   customer_id: number | string;
   sale_point_id: number | string;
   customer?: { name?: string; document_number?: string } | null;

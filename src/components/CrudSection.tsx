@@ -389,7 +389,8 @@ const CrudSection = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar {singularName.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará este {singularName.toLowerCase()}. Esta acción no se puede deshacer.
+              Dejará de aparecer en las listas, pero los comprobantes ya emitidos con este{" "}
+              {singularName.toLowerCase()} se conservan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

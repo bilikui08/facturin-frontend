@@ -42,6 +42,7 @@ describe("CrudSection", () => {
 
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText("¿Eliminar cliente?")).toBeTruthy();
+    expect(within(dialog).getByText(/los comprobantes ya emitidos con este cliente se conservan/)).toBeTruthy();
 
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     expect(deleteResource).not.toHaveBeenCalled();
