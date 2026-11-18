@@ -62,6 +62,21 @@ describe("AuditLog (auditoría)", () => {
     expect(lastQuery()).toContain("per_page=25");
   });
 
+  it("muestra el nombre guardado y, si no hay, el número de usuario", async () => {
+    apiRequest.mockResolvedValue(
+      page([
+        row({ id: 2, user_id: 7, user_name: "Gustavo Luis" }),
+        row({ id: 1, user_id: 9, user_name: null }),
+      ]),
+    );
+    render(<AuditLog />);
+
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Gustavo Luis")).toBeTruthy();
+    expect(table.getByText("Usuario 9")).toBeTruthy();
+    expect(table.queryByText("Usuario 7")).toBeNull();
+  });
+
   it("muestra el antes y el después de una edición", async () => {
     apiRequest.mockResolvedValue(
       page([

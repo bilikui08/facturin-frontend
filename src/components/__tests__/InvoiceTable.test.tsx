@@ -52,6 +52,22 @@ describe("InvoiceTable", () => {
     expect(screen.getByText("Usuario 7")).toBeTruthy();
   });
 
+  it("muestra el nombre de quien emitió, y 'Usuario N' si el comprobante no lo tiene guardado", () => {
+    render(
+      <InvoiceTable
+        invoices={[
+          row({ id: 7, total: "100.00", created_by: 7, created_by_name: "Gustavo Luis" }),
+          row({ id: 8, cbte_nro: 76, total: "50.00", created_by: 9, created_by_name: null }),
+        ]}
+        customerName={() => "Cliente"}
+      />,
+    );
+
+    expect(screen.getByText("Gustavo Luis")).toBeTruthy();
+    expect(screen.getByText("Usuario 9")).toBeTruthy();
+    expect(screen.queryByText("Usuario 7")).toBeNull();
+  });
+
   it("muestra un guion si el comprobante no tiene total", () => {
     render(<InvoiceTable invoices={[row({ id: 4, total: null })]} customerName={() => "Cliente"} />);
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);

@@ -68,8 +68,11 @@ export const auditRecordLabel = (row: Pick<AuditLogRow, "auditable_type" | "audi
   return row.auditable_id == null ? type : `${type} #${row.auditable_id}`;
 };
 
-export const auditUserLabel = (userId: number | null): string =>
-  userId == null ? "Sistema" : `Usuario ${userId}`;
+/** El nombre guardado en el momento de la acción; si no hay (registros anteriores), "Usuario N". */
+export const auditUserLabel = (userId: number | null, name?: string | null): string => {
+  if (name) return name;
+  return userId == null ? "Sistema" : `Usuario ${userId}`;
+};
 
 /** Fecha y hora local (la API entrega un instante ISO). "18/11/2026 19:57" */
 export const formatDateTime = (value: string | null): string => {

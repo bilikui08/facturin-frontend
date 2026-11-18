@@ -4,6 +4,8 @@ export interface AuditLogRow {
   created_at: string | null;
   /** Quién ejecutó la acción (id de auth-api). Null si fue una tarea de consola. */
   user_id: number | null;
+  /** Nombre de esa persona en el momento de la acción (foto fija). Puede faltar en registros anteriores. */
+  user_name?: string | null;
   owner_id: number | null;
   action: string;
   auditable_type: string;

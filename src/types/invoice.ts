@@ -16,6 +16,8 @@ export interface InvoiceRow {
   associated_invoice?: { id: number | string; cbte_nro: number | string } | null;
   /** Id del usuario (de auth-api) que emitió el comprobante. Si es una nota de crédito, quien anuló. */
   created_by?: number | null;
+  /** Su nombre en el momento de emitir (foto fija). Puede faltar en comprobantes anteriores. */
+  created_by_name?: string | null;
   customer_id: number | string;
   sale_point_id: number | string;
   customer?: { name?: string; document_number?: string } | null;

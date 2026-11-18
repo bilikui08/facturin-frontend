@@ -27,6 +27,9 @@ describe("auditFormat", () => {
     expect(auditRecordLabel({ auditable_type: "invoice", auditable_id: null })).toBe("Comprobante");
     expect(auditUserLabel(7)).toBe("Usuario 7");
     expect(auditUserLabel(null)).toBe("Sistema");
+    expect(auditUserLabel(7, "Gustavo Luis")).toBe("Gustavo Luis");
+    expect(auditUserLabel(7, null)).toBe("Usuario 7");
+    expect(auditUserLabel(7, "")).toBe("Usuario 7");
   });
 
   it("formatea la fecha y hora local", () => {

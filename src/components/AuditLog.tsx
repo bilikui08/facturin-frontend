@@ -182,7 +182,9 @@ const AuditLog = () => {
                   {rows.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell className="whitespace-nowrap tabular-nums">{formatDateTime(row.created_at)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{auditUserLabel(row.user_id)}</TableCell>
+                      <TableCell className="whitespace-nowrap" title={row.user_id == null ? undefined : `Usuario ${row.user_id}`}>
+                        {auditUserLabel(row.user_id, row.user_name)}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={auditActionTone(row.action)}>{auditActionLabel(row.action)}</Badge>
                       </TableCell>
@@ -253,7 +255,7 @@ const AuditLog = () => {
               <DialogHeader>
                 <DialogTitle>{auditActionLabel(selected.action)}</DialogTitle>
                 <DialogDescription>
-                  {auditRecordLabel(selected)} · {formatDateTime(selected.created_at)} · {auditUserLabel(selected.user_id)}
+                  {auditRecordLabel(selected)} · {formatDateTime(selected.created_at)} · {auditUserLabel(selected.user_id, selected.user_name)}
                 </DialogDescription>
               </DialogHeader>
 
