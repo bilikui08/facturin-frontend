@@ -8,12 +8,6 @@ import {
   type NewTokens,
 } from "./tokenStore";
 
-export interface LoginData {
-  access_token: string;
-  token_type: string;
-  expires_in: string | number;
-}
-
 interface AuthResponse {
   success?: boolean;
   message?: string;
@@ -53,40 +47,90 @@ const parseTokens = (data: Record<string, unknown>): NewTokens | null => {
 const authorizationValue = (type: string, token: string): string =>
   `${type.charAt(0).toUpperCase()}${type.slice(1).toLowerCase()} ${token}`;
 
-export const login = async (
-  email: string,
-  password: string,
-  remember: boolean,
-): Promise<LoginData> => {
-  const response = await fetch(`${AUTH_API_URL}/auth/login`, {
+export interface OrganizationSummary {
+  id: number;
+  name: string;
+}
+
+/**
+ * Resultado del primer paso del login: o ya entró (una sola empresa) o hay que elegir una de varias.
+ * Con varias empresas auth-api NO entrega tokens: da un permiso temporal (5 min, un solo uso) para elegir.
+ */
+export type LoginResult =
+  | { kind: "signed-in" }
+  | { kind: "select-organization"; selectionToken: string; organizations: OrganizationSummary[] };
+
+const parseOrganizations = (value: unknown): OrganizationSummary[] =>
+  Array.isArray(value)
+    ? value.flatMap((item) =>
+        isRecord(item) && typeof item.id === "number" && typeof item.name === "string"
+          ? [{ id: item.id, name: item.name }]
+          : [],
+      )
+    : [];
+
+const postAuth = async (path: string, body: unknown): Promise<AuthResponse & { data: Record<string, unknown> }> => {
+  const response = await fetch(`${AUTH_API_URL}${path}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ email, password }),
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
   });
 
-  const result = (await response.json()) as AuthResponse;
+  const result = (await response.json().catch(() => ({}))) as AuthResponse;
 
   if (!response.ok || !result.success || !result.data) {
     throw new Error(result.message || "No se pudo iniciar sesión");
   }
 
-  const tokens = parseTokens(result.data);
+  return { ...result, data: result.data };
+};
+
+const saveSession = (data: Record<string, unknown>, remember: boolean): void => {
+  const tokens = parseTokens(data);
 
   if (!tokens) {
-    console.error("Respuesta de login sin token:", result);
+    console.error("Respuesta de login sin token:", data);
     throw new Error("El servidor de autenticación no devolvió un token válido");
   }
 
   writeTokens(tokens, remember ? localStorage : sessionStorage);
+};
 
-  return {
-    access_token: tokens.accessToken,
-    token_type: tokens.tokenType ?? "Bearer",
-    expires_in: tokens.expiresIn ?? "",
-  };
+export const login = async (
+  email: string,
+  password: string,
+  remember: boolean,
+): Promise<LoginResult> => {
+  const { data } = await postAuth("/auth/login", { email, password });
+
+  if (data.requires_organization === true) {
+    const organizations = parseOrganizations(data.organizations);
+    const selectionToken = pickString(data, ["selection_token"]);
+
+    if (!selectionToken || organizations.length === 0) {
+      throw new Error("El servidor de autenticación no devolvió las empresas para elegir");
+    }
+
+    return { kind: "select-organization", selectionToken, organizations };
+  }
+
+  saveSession(data, remember);
+
+  return { kind: "signed-in" };
+};
+
+/** Segundo paso del login (solo con varias empresas): con el permiso temporal elige una y entra. */
+export const selectOrganization = async (
+  selectionToken: string,
+  organizationId: number,
+  remember: boolean,
+): Promise<void> => {
+  const { data } = await postAuth("/auth/select-organization", {
+    selection_token: selectionToken,
+    organization_id: organizationId,
+  });
+
+  saveSession(data, remember);
 };
 
 export const hasAccessToken = (): boolean => activeStorage() !== null;

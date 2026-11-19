@@ -7,6 +7,8 @@ import Dashboard from "../Dashboard";
 const menuLink = (name: string) =>
   screen.getAllByRole("link", { name }).find((link) => link.getAttribute("data-slot") === "sidebar-menu-button")!;
 
+vi.mock("../CompanySwitcher", () => ({ default: () => null }));
+
 const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>

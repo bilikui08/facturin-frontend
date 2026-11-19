@@ -7,6 +7,7 @@ import { hasBillingProfile } from "./services/billingProfileService";
 import { Button } from "@/components/ui/button";
 import LoadingBlock from "./components/LoadingBlock";
 import StatusAlert from "./components/StatusAlert";
+import CompanySwitcher from "./components/CompanySwitcher";
 
 // Cada pantalla se descarga recién cuando se entra a ella: el login (lo primero que se ve) pesa poco.
 const Dashboard = lazy(() => import("./components/Dashboard"));
@@ -127,6 +128,10 @@ const App = () => {
         <p className="text-muted-foreground">
           Para empezar a facturar primero necesitamos tus datos fiscales.
         </p>
+        {/* Una empresa nueva todavía no tiene perfil: desde acá se puede volver a otra empresa */}
+        <div className="max-w-xs">
+          <CompanySwitcher />
+        </div>
         <BillingProfile
           onSaved={() => {
             setProfileStatus("ready");

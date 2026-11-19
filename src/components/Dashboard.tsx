@@ -24,6 +24,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import CompanySwitcher from "./CompanySwitcher";
 import ThemeToggle from "./ThemeToggle";
 
 const sections = [
@@ -61,6 +62,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </span>
             <span className="text-base font-semibold tracking-tight">Facturín</span>
           </NavLink>
+          <CompanySwitcher />
         </SidebarHeader>
 
         <SidebarContent>
