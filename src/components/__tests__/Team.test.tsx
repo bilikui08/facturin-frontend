@@ -6,14 +6,18 @@ import Team from "../Team";
 
 const getMembers = vi.fn();
 const getAssignableRoles = vi.fn();
-const addMember = vi.fn();
+const inviteMember = vi.fn();
+const getInvitations = vi.fn();
+const revokeInvitation = vi.fn();
 const setMemberRoles = vi.fn();
 const removeMember = vi.fn();
 
 vi.mock("../../services/teamService", () => ({
   getMembers: (...a: unknown[]) => getMembers(...a),
   getAssignableRoles: (...a: unknown[]) => getAssignableRoles(...a),
-  addMember: (...a: unknown[]) => addMember(...a),
+  inviteMember: (...a: unknown[]) => inviteMember(...a),
+  getInvitations: (...a: unknown[]) => getInvitations(...a),
+  revokeInvitation: (...a: unknown[]) => revokeInvitation(...a),
   setMemberRoles: (...a: unknown[]) => setMemberRoles(...a),
   removeMember: (...a: unknown[]) => removeMember(...a),
 }));
@@ -32,7 +36,9 @@ beforeEach(() => {
   signIn({ userId: 7, organizationId: 1, permissions: ["org.members.manage"] });
   getMembers.mockReset().mockResolvedValue(members);
   getAssignableRoles.mockReset().mockResolvedValue(roles);
-  addMember.mockReset().mockResolvedValue(members);
+  inviteMember.mockReset().mockResolvedValue({ status: "invited", email_sent: true, members, invitations: [] });
+  getInvitations.mockReset().mockResolvedValue([]);
+  revokeInvitation.mockReset().mockResolvedValue([]);
   setMemberRoles.mockReset().mockResolvedValue(members);
   removeMember.mockReset().mockResolvedValue(members);
 });
@@ -56,7 +62,7 @@ describe("Equipo", () => {
     expect(screen.getByText("2 personas")).toBeTruthy();
   });
 
-  it("agrega una persona con email y roles", async () => {
+  it("invita a una persona por email con sus roles", async () => {
     render(<Team />);
     const user = userEvent.setup({ pointerEventsCheck: 0 });
 
@@ -68,13 +74,13 @@ describe("Equipo", () => {
     await user.click(dialog.getByRole("checkbox", { name: "Vendedor" }));
     await user.click(dialog.getByRole("button", { name: "Guardar" }));
 
-    await waitFor(() => expect(addMember).toHaveBeenCalledWith("dani@ejemplo.com", ["seller"]));
-    expect(await screen.findByText("Persona agregada a la empresa.")).toBeTruthy();
+    await waitFor(() => expect(inviteMember).toHaveBeenCalledWith("dani@ejemplo.com", ["seller"]));
+    expect(await screen.findByText("Invitación enviada a dani@ejemplo.com. Vence en 7 días.")).toBeTruthy();
     expect(getMembers).toHaveBeenCalledTimes(2); // recarga la lista
   });
 
   it("muestra el motivo si no se puede agregar y deja el diálogo abierto", async () => {
-    addMember.mockRejectedValue(new Error("No hay ningún usuario con ese email: la persona debe registrarse primero."));
+    inviteMember.mockRejectedValue(new Error("Esa persona ya pertenece a la empresa."));
     render(<Team />);
     const user = userEvent.setup({ pointerEventsCheck: 0 });
 
@@ -84,7 +90,7 @@ describe("Equipo", () => {
     await user.click(dialog.getByRole("checkbox", { name: "Lector" }));
     await user.click(dialog.getByRole("button", { name: "Guardar" }));
 
-    expect(await screen.findByText(/la persona debe registrarse primero/)).toBeTruthy();
+    expect(await screen.findByText("Esa persona ya pertenece a la empresa.")).toBeTruthy();
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
@@ -149,5 +155,72 @@ describe("Equipo", () => {
     render(<Team />);
 
     expect(await screen.findByText("No tiene permisos para realizar esta acción.")).toBeTruthy();
+  });
+
+  it("si el email ya tenía cuenta avisa que entró al instante", async () => {
+    inviteMember.mockResolvedValue({ status: "added", email_sent: true, members, invitations: [] });
+    render(<Team />);
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+    await user.click(await screen.findByRole("button", { name: /Agregar persona/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.type(dialog.getByLabelText("Email"), "beto@ejemplo.com");
+    await user.click(dialog.getByRole("checkbox", { name: "Lector" }));
+    await user.click(dialog.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText("beto@ejemplo.com ya tenía cuenta: se la sumó a la empresa y se le avisó por email.")).toBeTruthy();
+  });
+
+  it("si el correo no pudo salir lo dice como error y la invitación queda para reenviar", async () => {
+    inviteMember.mockResolvedValue({ status: "invited", email_sent: false, members, invitations: [] });
+    render(<Team />);
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+    await user.click(await screen.findByRole("button", { name: /Agregar persona/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.type(dialog.getByLabelText("Email"), "dani@ejemplo.com");
+    await user.click(dialog.getByRole("checkbox", { name: "Lector" }));
+    await user.click(dialog.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText(/quedó guardada, pero no se pudo enviar el correo/)).toBeTruthy();
+  });
+
+  describe("invitaciones pendientes", () => {
+    const pending = [{ id: 4, email: "nuevo@ejemplo.com", roles: ["seller"], invited_by: "Ana", expires_at: "2026-11-26T12:00:00-03:00", created_at: "2026-11-19T12:00:00-03:00" }];
+
+    it("se listan con quién invitó y cuándo vencen; sin pendientes no hay sección", async () => {
+      const { unmount } = render(<Team />);
+      await screen.findByRole("table");
+      expect(screen.queryByText("Invitaciones pendientes")).toBeNull();
+      unmount();
+
+      getInvitations.mockResolvedValue(pending);
+      render(<Team />);
+
+      expect(await screen.findByText("Invitaciones pendientes")).toBeTruthy();
+      expect(screen.getByText("nuevo@ejemplo.com")).toBeTruthy();
+    });
+
+    it("reenviar vuelve a invitar al mismo email con los mismos roles", async () => {
+      getInvitations.mockResolvedValue(pending);
+      render(<Team />);
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+      await user.click(await screen.findByRole("button", { name: "Reenviar la invitación a nuevo@ejemplo.com" }));
+
+      await waitFor(() => expect(inviteMember).toHaveBeenCalledWith("nuevo@ejemplo.com", ["seller"]));
+      expect(await screen.findByText("Invitación enviada a nuevo@ejemplo.com. Vence en 7 días.")).toBeTruthy();
+    });
+
+    it("cancelar anula la invitación", async () => {
+      getInvitations.mockResolvedValue(pending);
+      render(<Team />);
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+      await user.click(await screen.findByRole("button", { name: "Cancelar la invitación a nuevo@ejemplo.com" }));
+
+      await waitFor(() => expect(revokeInvitation).toHaveBeenCalledWith(4));
+      expect(await screen.findByText("Invitación a nuevo@ejemplo.com cancelada.")).toBeTruthy();
+    });
   });
 });

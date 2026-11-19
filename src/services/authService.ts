@@ -133,6 +133,54 @@ export const selectOrganization = async (
   saveSession(data, remember);
 };
 
+export interface InvitationInfo {
+  email: string;
+  organization: string;
+  invited_by: string | null;
+  roles: { name: string; description: string | null }[];
+  expires_at: string;
+}
+
+/** Datos de la invitación para la pantalla de aceptación. Falla con un mensaje claro si no es válida o venció. */
+export const getInvitation = async (token: string, signal?: AbortSignal): Promise<InvitationInfo> => {
+  const response = await fetch(`${AUTH_API_URL}/auth/invitations/${encodeURIComponent(token)}`, { headers: { Accept: "application/json" }, signal });
+  const result = (await response.json().catch(() => ({}))) as AuthResponse;
+
+  if (!response.ok || !result.data) {
+    throw new Error(result.message || "No se pudo cargar la invitación");
+  }
+
+  return result.data as unknown as InvitationInfo;
+};
+
+/**
+ * Acepta la invitación: crea la cuenta y entra (se guarda la sesión), o, si el email ya tenía cuenta, solo informa que quedó
+ * sumada a la empresa (entrar requiere su contraseña de siempre).
+ */
+export const acceptInvitation = async (
+  token: string,
+  data: { name: string; password: string; password_confirmation: string },
+  remember: boolean,
+): Promise<"created" | "existing_user"> => {
+  const response = await fetch(`${AUTH_API_URL}/auth/invitations/${encodeURIComponent(token)}/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(data),
+  });
+  const result = (await response.json().catch(() => ({}))) as AuthResponse & { errors?: Record<string, string[]> };
+
+  if (!response.ok || !result.success || !result.data) {
+    const field = result.errors ? Object.values(result.errors).flat().find((v) => typeof v === "string") : undefined;
+    throw new Error(field || result.message || "No se pudo aceptar la invitación");
+  }
+
+  if (result.data.status === "existing_user") return "existing_user";
+
+  saveSession(result.data, remember);
+
+  return "created";
+};
+
 export const hasAccessToken = (): boolean => activeStorage() !== null;
 
 /**

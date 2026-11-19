@@ -69,8 +69,17 @@ const Companies = () => {
 
     try {
       if (editing.kind === "create") {
-        await createOrganization({ name: name.trim(), tax_id: taxId.trim() || null, admin_email: adminEmail.trim() });
-        setNotice({ kind: "success", text: "Empresa creada." });
+        const created = await createOrganization({ name: name.trim(), tax_id: taxId.trim() || null, admin_email: adminEmail.trim() });
+
+        if (created.admin_status === "invited") {
+          setNotice(
+            created.email_sent === false
+              ? { kind: "error", text: `Empresa creada, pero no se pudo enviar el correo de invitación a ${adminEmail.trim()}. Reenviala desde Equipo.` }
+              : { kind: "success", text: `Empresa creada. Se invitó por email a ${adminEmail.trim()} para que la administre.` },
+          );
+        } else {
+          setNotice({ kind: "success", text: "Empresa creada." });
+        }
       } else {
         await updateOrganization(editing.organization.id, { name: name.trim(), tax_id: taxId.trim() || null });
         setNotice({ kind: "success", text: "Empresa actualizada." });
@@ -180,7 +189,7 @@ const Companies = () => {
             <DialogDescription>
               {editing?.kind === "edit"
                 ? "Nombre y CUIT de la empresa."
-                : "La persona indicada queda como administradora de la empresa (debe tener cuenta)."}
+                : "La persona indicada queda como administradora de la empresa. Si todavía no tiene cuenta, le llega una invitación por email."}
             </DialogDescription>
           </DialogHeader>
 

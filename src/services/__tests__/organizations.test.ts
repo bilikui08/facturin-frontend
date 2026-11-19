@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AUTH_API_URL } from "../../config/api";
-import { login, selectOrganization } from "../authService";
+import { acceptInvitation, getInvitation, login, selectOrganization } from "../authService";
 import { getMyOrganizations, switchOrganization } from "../organizationService";
 import { readTokens, writeTokens } from "../tokenStore";
 
@@ -150,5 +150,46 @@ describe("empresas de la sesión", () => {
 
     await expect(switchOrganization(2)).rejects.toThrow("volvé a iniciar sesión");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("invitaciones (pantalla pública)", () => {
+  it("consulta la invitación con el token del enlace (codificado)", async () => {
+    fetchMock.mockResolvedValue(json(200, { success: true, data: { email: "a@b.com", organization: "A", invited_by: "Ana", roles: [], expires_at: "x" } }));
+
+    const info = await getInvitation("tok/con+raros");
+
+    expect(info.organization).toBe("A");
+    expect(fetchMock.mock.calls[0][0]).toBe(`${AUTH_API_URL}/auth/invitations/tok%2Fcon%2Braros`);
+  });
+
+  it("una invitación inválida falla con el mensaje del servidor", async () => {
+    fetchMock.mockResolvedValue(json(404, { success: false, message: "La invitación no es válida o venció. Pedí que te inviten de nuevo." }));
+
+    await expect(getInvitation("x")).rejects.toThrow("La invitación no es válida o venció");
+  });
+
+  it("aceptar crea la cuenta y guarda la sesión (solo en esa pestaña por defecto)", async () => {
+    fetchMock.mockResolvedValue(json(201, { success: true, data: { status: "created", organization: { id: 1, name: "A" }, tokens: tokens("acc-9", "ref-9") } }));
+
+    const result = await acceptInvitation("tok", { name: "Nueva", password: "password123", password_confirmation: "password123" }, false);
+
+    expect(result).toBe("created");
+    expect(bodyOf(fetchMock.mock.calls[0])).toEqual({ name: "Nueva", password: "password123", password_confirmation: "password123" });
+    expect(sessionStorage.getItem("access_token")).toBe("acc-9");
+  });
+
+  it("si el email ya tenía cuenta no guarda ninguna sesión", async () => {
+    fetchMock.mockResolvedValue(json(200, { success: true, data: { status: "existing_user" } }));
+
+    expect(await acceptInvitation("tok", { name: "x", password: "password123", password_confirmation: "password123" }, false)).toBe("existing_user");
+    expect(readTokens()).toBeNull();
+  });
+
+  it("muestra el primer error de validación del servidor", async () => {
+    fetchMock.mockResolvedValue(json(422, { success: false, message: "Los datos enviados no son válidos.", errors: { name: ["Ese nombre ya está en uso: elegí otro."] } }));
+
+    await expect(acceptInvitation("tok", { name: "Ana", password: "password123", password_confirmation: "password123" }, false)).rejects.toThrow("Ese nombre ya está en uso");
+    expect(readTokens()).toBeNull();
   });
 });

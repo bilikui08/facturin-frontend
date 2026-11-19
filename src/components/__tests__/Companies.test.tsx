@@ -62,6 +62,20 @@ describe("Empresas (administración del sistema)", () => {
     expect(await screen.findByText("Empresa creada.")).toBeTruthy();
   });
 
+  it("si el administrador todavía no tiene cuenta avisa que se lo invitó por email", async () => {
+    createOrganization.mockResolvedValue({ ...orgs[0], admin_status: "invited", email_sent: true });
+    render(<Companies />);
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+    await user.click(await screen.findByRole("button", { name: /Nueva empresa/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.type(dialog.getByLabelText("Nombre"), "Nueva SRL");
+    await user.type(dialog.getByLabelText("Email de quien administra"), "dueno@ejemplo.com");
+    await user.click(dialog.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText("Empresa creada. Se invitó por email a dueno@ejemplo.com para que la administre.")).toBeTruthy();
+  });
+
   it("muestra el motivo si el alta falla (por ejemplo, un CUIT repetido)", async () => {
     createOrganization.mockRejectedValue(new Error("El CUIT ya está en uso."));
     render(<Companies />);

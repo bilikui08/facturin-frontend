@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, UserMinus, UserPlus } from "lucide-react";
+import { MailPlus, Pencil, Send, UserMinus, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +20,19 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAccess } from "../hooks/useAccess";
+import { formatDateTime } from "../utils/auditFormat";
 import {
-  addMember,
   getAssignableRoles,
+  getInvitations,
   getMembers,
+  inviteMember,
   removeMember,
+  revokeInvitation,
   setMemberRoles,
   type AssignableRole,
+  type InviteResult,
   type Member,
+  type PendingInvitation,
 } from "../services/teamService";
 import FormField from "./FormField";
 import LoadingBlock from "./LoadingBlock";
@@ -92,6 +97,7 @@ const Team = () => {
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   const members = useQuery((signal) => getMembers(signal), [reload], "No se pudo cargar el equipo");
+  const invitations = useQuery((signal) => getInvitations(signal), [reload], "No se pudieron cargar las invitaciones");
   const roles = useQuery((signal) => getAssignableRoles(signal), [], "No se pudieron cargar los roles");
 
   const roleList = roles.data ?? [];
@@ -110,6 +116,40 @@ const Team = () => {
     setEditing({ kind: "roles", member });
   };
 
+  /** Avisa qué pasó al sumar a alguien por email: entró al instante, se le mandó la invitación, o el correo no salió. */
+  const reportInvite = (email: string, result: InviteResult) => {
+    if (result.status === "added") {
+      setNotice({ kind: "success", text: `${email} ya tenía cuenta: se la sumó a la empresa${result.email_sent ? " y se le avisó por email" : ""}.` });
+    } else if (result.email_sent) {
+      setNotice({ kind: "success", text: `Invitación enviada a ${email}. Vence en 7 días.` });
+    } else {
+      setNotice({ kind: "error", text: `La invitación a ${email} quedó guardada, pero no se pudo enviar el correo. Probá reenviarla en un rato.` });
+    }
+  };
+
+  const resend = async (invitation: PendingInvitation) => {
+    setNotice(null);
+
+    try {
+      reportInvite(invitation.email, await inviteMember(invitation.email, invitation.roles));
+      setReload((n) => n + 1);
+    } catch (err) {
+      setNotice({ kind: "error", text: err instanceof Error ? err.message : "No se pudo reenviar la invitación" });
+    }
+  };
+
+  const cancelInvitation = async (invitation: PendingInvitation) => {
+    setNotice(null);
+
+    try {
+      await revokeInvitation(invitation.id);
+      setNotice({ kind: "success", text: `Invitación a ${invitation.email} cancelada.` });
+      setReload((n) => n + 1);
+    } catch (err) {
+      setNotice({ kind: "error", text: err instanceof Error ? err.message : "No se pudo cancelar la invitación" });
+    }
+  };
+
   const save = async () => {
     if (!editing) return;
     setSaving(true);
@@ -117,8 +157,8 @@ const Team = () => {
 
     try {
       if (editing.kind === "add") {
-        await addMember(email.trim(), selected);
-        setNotice({ kind: "success", text: "Persona agregada a la empresa." });
+        const address = email.trim();
+        reportInvite(address, await inviteMember(address, selected));
       } else {
         await setMemberRoles(editing.member.user_id, selected);
         setNotice({ kind: "success", text: `Roles de ${editing.member.name} actualizados.` });
@@ -150,11 +190,12 @@ const Team = () => {
   return (
     <section className="space-y-6">
       <p className="text-muted-foreground">
-        Las personas que trabajan con los datos de tu empresa y lo que puede hacer cada una. La persona debe tener cuenta en Facturín
-        (todavía no hay invitaciones por email).
+        Las personas que trabajan con los datos de tu empresa y lo que puede hacer cada una. Para sumar a alguien alcanza con su email:
+        si todavía no tiene cuenta, le llega una invitación para crearla.
       </p>
 
       {members.error && <StatusAlert kind="error">{members.error}</StatusAlert>}
+      {invitations.error && <StatusAlert kind="error">{invitations.error}</StatusAlert>}
       {roles.error && <StatusAlert kind="error">{roles.error}</StatusAlert>}
       {notice && <StatusAlert kind={notice.kind}>{notice.text}</StatusAlert>}
 
@@ -162,7 +203,7 @@ const Team = () => {
         <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
           <CardTitle className="text-base">Personas de la empresa</CardTitle>
           <Button type="button" size="sm" onClick={openAdd} disabled={roleList.length === 0}>
-            <UserPlus />
+            <MailPlus />
             Agregar persona
           </Button>
         </CardHeader>
@@ -227,6 +268,57 @@ const Team = () => {
         )}
       </Card>
 
+      {(invitations.data ?? []).length > 0 && (
+        <Card className="gap-0 overflow-hidden py-0">
+          <CardHeader className="border-b py-4 [.border-b]:pb-4">
+            <CardTitle className="text-base">Invitaciones pendientes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead>Invitó</TableHead>
+                  <TableHead>Vence</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(invitations.data ?? []).map((invitation) => (
+                  <TableRow key={invitation.id}>
+                    <TableCell className="font-medium">{invitation.email}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {invitation.roles.map((name) => (
+                          <Badge key={name} variant="secondary">
+                            {roleTitle(byName.get(name), name)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{invitation.invited_by ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDateTime(invitation.expires_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" type="button" aria-label={`Reenviar la invitación a ${invitation.email}`} onClick={() => void resend(invitation)}>
+                          <Send />
+                          Reenviar
+                        </Button>
+                        <Button variant="outline" size="sm" type="button" aria-label={`Cancelar la invitación a ${invitation.email}`} onClick={() => void cancelInvitation(invitation)}>
+                          <X />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog open={editing !== null} onOpenChange={(open) => !open && !saving && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
@@ -234,7 +326,7 @@ const Team = () => {
             <DialogDescription>
               {editing?.kind === "roles"
                 ? "Los cambios rigen desde la próxima vez que la persona renueve su sesión (hasta 15 minutos)."
-                : "Indicá el email con el que la persona ya tiene cuenta y qué va a poder hacer."}
+                : "Indicá su email y qué va a poder hacer. Si todavía no tiene cuenta, le mandamos una invitación para crearla."}
             </DialogDescription>
           </DialogHeader>
 
