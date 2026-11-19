@@ -1,5 +1,7 @@
 import CrudSection from "./CrudSection";
 import type { FieldConfig } from "../types/crud";
+import { P } from "../config/permissions";
+import { useAccess } from "../hooks/useAccess";
 
 const customerFields = [
   { name: "name", label: "Nombre o razón social", required: true },
@@ -23,13 +25,18 @@ const customerFields = [
   },
 ] satisfies FieldConfig[];
 
-const Customers = () => (
-  <CrudSection
-    title="Clientes"
-    singularName="Cliente"
-    endpoint="/customers"
-    fields={customerFields}
-  />
-);
+const Customers = () => {
+  const { can } = useAccess();
+
+  return (
+    <CrudSection
+      title="Clientes"
+      singularName="Cliente"
+      endpoint="/customers"
+      fields={customerFields}
+      readOnly={!can(P.customerManage)}
+    />
+  );
+};
 
 export default Customers;

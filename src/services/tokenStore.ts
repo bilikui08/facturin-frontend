@@ -40,6 +40,25 @@ export const jwtExpiry = (jwt: string): number | null => {
   }
 };
 
+/** Claims de un JWT (sin verificar la firma: sirve para dibujar la interfaz, nunca para autorizar). null si no es legible. */
+export const jwtClaims = (jwt: string): Record<string, unknown> | null => {
+  try {
+    const payload = jwt.split(".")[1];
+    if (!payload) return null;
+    const parsed: unknown = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Se dispara cuando cambian los tokens de esta pestaña (login, renovación, cambio de empresa, cierre de sesión). */
+export const TOKENS_CHANGED_EVENT = "facturin:tokens-changed";
+
+const notifyTokensChanged = (): void => {
+  window.dispatchEvent(new Event(TOKENS_CHANGED_EVENT));
+};
+
 /** Storage donde está la sesión actual (null si no hay sesión). */
 export const activeStorage = (): Storage | null => {
   if (localStorage.getItem("access_token")) return localStorage;
@@ -68,6 +87,7 @@ export const clearTokens = (): void => {
   [localStorage, sessionStorage].forEach((storage) => {
     KEYS.forEach((key) => storage.removeItem(key));
   });
+  notifyTokensChanged();
 };
 
 /** Guarda tokens nuevos en `storage` y limpia el otro, para no dejar una sesión duplicada. */
@@ -88,6 +108,8 @@ export const writeTokens = (tokens: NewTokens, storage: Storage): void => {
 
   if (tokens.refreshToken) storage.setItem("refresh_token", tokens.refreshToken);
   else storage.removeItem("refresh_token");
+
+  notifyTokensChanged();
 };
 
 export const isExpiring = (tokens: StoredTokens, marginMs = REFRESH_MARGIN_MS): boolean =>

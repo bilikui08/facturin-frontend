@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { P } from "../config/permissions";
+import { useAccess } from "../hooks/useAccess";
 import { getSettings, updateSettings } from "../services/settingsService";
 import type { SettingDefinition } from "../types/settings";
 import LoadingBlock from "./LoadingBlock";
@@ -20,6 +22,7 @@ const groupSettings = (settings: SettingDefinition[]): [string, SettingDefinitio
 
 /** Configuración: parámetros del usuario. La pantalla se arma sola a partir de lo que describe la API. */
 const Settings = () => {
+  const readOnly = !useAccess().can(P.settingsManage);
   const [reload, setReload] = useState(0);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -71,6 +74,7 @@ const Settings = () => {
   return (
     <section className="space-y-6">
       <p className="text-muted-foreground">Parámetros de Facturín. Cada cambio queda registrado en la Auditoría.</p>
+      {readOnly && <StatusAlert kind="error">Podés ver la configuración, pero no cambiarla: no tenés ese permiso en esta empresa.</StatusAlert>}
 
       {loadError && <StatusAlert kind="error">{loadError}</StatusAlert>}
       {error && <StatusAlert kind="error">{error}</StatusAlert>}
@@ -96,6 +100,7 @@ const Settings = () => {
                       min={setting.min}
                       max={setting.max}
                       step={1}
+                      disabled={readOnly}
                       value={shown(setting)}
                       onChange={(e) => {
                         setSaved(false);
@@ -103,7 +108,7 @@ const Settings = () => {
                       }}
                     />
                     <span className="text-sm text-muted-foreground">{setting.unit}</span>
-                    {shown(setting) !== String(setting.default) && (
+                    {!readOnly && shown(setting) !== String(setting.default) && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -134,7 +139,7 @@ const Settings = () => {
               <span className="text-sm text-muted-foreground">
                 {changed.length === 0 ? "No hay cambios sin guardar." : `${changed.length} cambio${changed.length === 1 ? "" : "s"} sin guardar.`}
               </span>
-              <Button type="submit" disabled={changed.length === 0 || saving}>
+              <Button type="submit" disabled={readOnly || changed.length === 0 || saving}>
                 {saving ? <Spinner aria-label="Guardando" /> : <Save />}
                 Guardar cambios
               </Button>

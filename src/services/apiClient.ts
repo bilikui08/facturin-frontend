@@ -65,6 +65,27 @@ const refreshIfExpiring = async (): Promise<void> => {
   }
 };
 
+// Un 403 puede significar que los permisos cambiaron desde que se emitió el token (duran hasta 15 minutos): se renueva
+// la sesión para que la interfaz se ponga al día. No más de una vez cada tanto, para no hacer una ronda de renovaciones.
+const FORBIDDEN_REFRESH_COOLDOWN_MS = 30_000;
+let lastForbiddenRefresh = 0;
+
+const resyncAfterForbidden = async (): Promise<void> => {
+  if (Date.now() - lastForbiddenRefresh < FORBIDDEN_REFRESH_COOLDOWN_MS) return;
+  lastForbiddenRefresh = Date.now();
+
+  try {
+    await refreshSession();
+  } catch {
+    // Sin red o error del servidor: el 403 se informa igual y la sesión no se toca
+  }
+};
+
+/** Solo para pruebas: permite repetir el escenario sin esperar el enfriamiento. */
+export const resetForbiddenRefreshForTests = (): void => {
+  lastForbiddenRefresh = 0;
+};
+
 export const apiRequest = async <T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -83,6 +104,10 @@ export const apiRequest = async <T = unknown>(
 
   if (response.status === 401) {
     window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  }
+
+  if (response.status === 403) {
+    await resyncAfterForbidden();
   }
 
   if (!response.ok || failedByPayload) {

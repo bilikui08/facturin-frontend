@@ -9,6 +9,11 @@ export interface TrashItem {
   /** Nombre del registro ("Test 2 Monotributo", "1 - Sucursal") */
   label: string;
   deleted_at: string;
+  /** Persona que lo eliminó (null: la consola) */
+  deleted_by?: number | null;
+  deleted_by_me?: boolean;
+  /** Nombre de quien lo eliminó, tomado de la auditoría (puede faltar) */
+  deleted_by_name?: string | null;
 }
 
 /** Una página de la papelera (no vence: crece con el tiempo, por eso se pagina). */

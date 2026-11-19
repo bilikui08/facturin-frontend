@@ -28,7 +28,7 @@ const CompanySwitcher = () => {
 
     try {
       await switchOrganization(organizationId);
-      reloadAt("/dashboard/invoices");
+      reloadAt("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cambiar de empresa");
       setSwitching(false);

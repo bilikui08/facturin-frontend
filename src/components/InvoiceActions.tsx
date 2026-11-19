@@ -11,6 +11,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { P } from "../config/permissions";
+import { useAccess } from "../hooks/useAccess";
 import { apiRequest } from "../services/apiClient";
 import type { InvoiceRow } from "../types/invoice";
 import { formatInvoiceNumber, formatMoney, isCreditNote } from "../utils/invoiceFormat";
@@ -46,7 +48,8 @@ const InvoiceActions = ({ invoice, onChanged }: InvoiceActionsProps) => {
   const id = invoice.id;
   const hasCae = Boolean(invoice.cae);
   // Se puede anular una factura autorizada que todavía no tiene nota de crédito
-  const canAnnul = hasCae && !isCreditNote(invoice) && !invoice.credit_note;
+  const mayAnnul = useAccess().can(P.invoiceAnnul);
+  const canAnnul = mayAnnul && hasCae && !isCreditNote(invoice) && !invoice.credit_note;
   const [annulling, setAnnulling] = useState(false);
   const [confirmingAnnul, setConfirmingAnnul] = useState(false);
   const [annulError, setAnnulError] = useState("");

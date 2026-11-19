@@ -17,7 +17,7 @@ const authorization = (): string | null => {
 };
 
 /** Pedido autenticado a auth-api: ante un 401 renueva la sesión una vez y repite. */
-const authApi = async (path: string, init: RequestInit = {}): Promise<Response> => {
+export const authApi = async (path: string, init: RequestInit = {}): Promise<Response> => {
   const send = () =>
     fetch(`${AUTH_API_URL}${path}`, {
       ...init,
@@ -80,4 +80,15 @@ export const switchOrganization = async (organizationId: number): Promise<void> 
     },
     activeStorage() ?? localStorage,
   );
+};
+
+/** Roles globales de la persona (los lista auth-api en /auth/me). Solo se usa para saber si es administradora del sistema. */
+export const getSystemRoles = async (signal?: AbortSignal): Promise<string[]> => {
+  const response = await authApi("/auth/me", { signal });
+  const body: unknown = await response.json().catch(() => null);
+  const data = isRecord(body) && isRecord(body.data) ? body.data : null;
+
+  if (!response.ok || !data) throw new Error("No se pudo consultar el usuario");
+
+  return Array.isArray(data.roles) ? data.roles.filter((r): r is string => typeof r === "string") : [];
 };

@@ -55,6 +55,8 @@ interface CrudSectionProps {
   endpoint: string;
   fields: FieldConfig[];
   single?: boolean;
+  /** Solo consulta: sin botones para agregar, editar ni eliminar (la persona no tiene permiso de administrar). */
+  readOnly?: boolean;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -97,6 +99,7 @@ const CrudSection = ({
   endpoint,
   fields,
   single = false,
+  readOnly = false,
 }: CrudSectionProps) => {
   const emptyForm = useMemo(() => getEmptyForm(fields), [fields]);
   const referenceFields = useMemo(
@@ -286,9 +289,9 @@ const CrudSection = ({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted-foreground">
-          Creá, consultá y actualizá tus {title.toLowerCase()}.
+          {readOnly ? `Consultá tus ${title.toLowerCase()}.` : `Creá, consultá y actualizá tus ${title.toLowerCase()}.`}
         </p>
-        {(!single || items.length === 0) && !isFormOpen && (
+        {!readOnly && (!single || items.length === 0) && !isFormOpen && (
           <Button type="button" onClick={openCreateForm}>
             <Plus />
             Agregar {singularName.toLowerCase()}
@@ -383,7 +386,7 @@ const CrudSection = ({
                   {fields.map((field) => (
                     <TableHead key={field.name}>{field.label}</TableHead>
                   ))}
-                  <TableHead className="text-right">Acciones</TableHead>
+                  {!readOnly && <TableHead className="text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -392,6 +395,7 @@ const CrudSection = ({
                     {fields.map((field) => (
                       <TableCell key={field.name}>{columnValue(item, field)}</TableCell>
                     ))}
+                    {!readOnly && (
                     <TableCell className="text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -415,6 +419,7 @@ const CrudSection = ({
                         </Button>
                       </div>
                     </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

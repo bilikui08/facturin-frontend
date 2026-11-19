@@ -8,6 +8,8 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTrash, restoreTrashItems } from "../services/trashService";
+import { P } from "../config/permissions";
+import { useAccess } from "../hooks/useAccess";
 import { trashKey, type TrashItem, type TrashType } from "../types/trash";
 import { formatDateTime } from "../utils/auditFormat";
 import LoadingBlock from "./LoadingBlock";
@@ -22,10 +24,19 @@ interface Feedback {
 
 const PAGE_SIZES = [20, 50, 100];
 
+/** Quién eliminó el registro, tal como lo muestra la auditoría: nombre, "Vos", "Usuario N" o la consola. */
+const deletedBy = (item: TrashItem): string =>
+  item.deleted_by_me ? "Vos" : item.deleted_by_name ?? (item.deleted_by ? `Usuario ${item.deleted_by}` : "Consola");
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Papelera de reciclaje: lo que la persona eliminó, con la opción de restaurarlo. */
 const Trash = () => {
+  const { can } = useAccess();
+  const seesEveryone = can(P.trashRestoreAny);
+  // Cada tipo exige el permiso de administrarlo
+  const canCustomers = can(P.customerManage);
+  const canSalePoints = can(P.salePointManage);
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [restoring, setRestoring] = useState(false);
@@ -88,8 +99,10 @@ const Trash = () => {
   return (
     <section className="space-y-6">
       <p className="text-muted-foreground">
-        Lo que eliminás queda en la papelera y podés restaurarlo desde acá cuando quieras. Sus datos se conservan porque los
-        comprobantes emitidos los necesitan.
+        {seesEveryone
+          ? "Lo que se eliminó en la empresa queda en la papelera y podés restaurarlo desde acá cuando quieras, aunque lo haya eliminado otra persona."
+          : "Lo que eliminás queda en la papelera y podés restaurarlo desde acá cuando quieras."}{" "}
+        Sus datos se conservan porque los comprobantes emitidos los necesitan.
       </p>
 
       {error && <StatusAlert kind="error">{error}</StatusAlert>}
@@ -105,7 +118,7 @@ const Trash = () => {
 
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
-          <CardTitle className="text-base">Registros eliminados por vos</CardTitle>
+          <CardTitle className="text-base">{seesEveryone ? "Registros eliminados en la empresa" : "Registros eliminados por vos"}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm text-muted-foreground" htmlFor="trash-type">Tipo</label>
             <NativeSelect
@@ -116,8 +129,8 @@ const Trash = () => {
               onChange={(e) => goTo(() => { setType(e.target.value as TrashType | ""); setPage(1); })}
             >
               <NativeSelectOption value="">Todos</NativeSelectOption>
-              <NativeSelectOption value="customer">Clientes</NativeSelectOption>
-              <NativeSelectOption value="sale_point">Puntos de venta</NativeSelectOption>
+              {canCustomers && <NativeSelectOption value="customer">Clientes</NativeSelectOption>}
+              {canSalePoints && <NativeSelectOption value="sale_point">Puntos de venta</NativeSelectOption>}
             </NativeSelect>
           <Button
             type="button"
@@ -153,6 +166,7 @@ const Trash = () => {
                     </TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Entidad</TableHead>
+                    {seesEveryone && <TableHead>Eliminado por</TableHead>}
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -174,6 +188,9 @@ const Trash = () => {
                           <span className="text-xs text-muted-foreground">#{item.id}</span>
                         </div>
                       </TableCell>
+                      {seesEveryone && (
+                        <TableCell className="whitespace-nowrap text-muted-foreground">{deletedBy(item)}</TableCell>
+                      )}
                       <TableCell className="text-right">
                         <Button
                           variant="outline"

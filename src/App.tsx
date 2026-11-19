@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import LoadingBlock from "./components/LoadingBlock";
 import StatusAlert from "./components/StatusAlert";
 import CompanySwitcher from "./components/CompanySwitcher";
+import RequirePermission from "./components/RequirePermission";
+import { useAccess } from "./hooks/useAccess";
+import { SECTION_PERMISSIONS } from "./config/permissions";
+import { firstAllowedSection, readAccess } from "./services/access";
 
 // Cada pantalla se descarga recién cuando se entra a ella: el login (lo primero que se ve) pesa poco.
 const Dashboard = lazy(() => import("./components/Dashboard"));
@@ -19,6 +23,8 @@ const AuditLog = lazy(() => import("./components/AuditLog"));
 const Trash = lazy(() => import("./components/Trash"));
 const Settings = lazy(() => import("./components/Settings"));
 const SalePoints = lazy(() => import("./components/SalePoints"));
+const Team = lazy(() => import("./components/Team"));
+const Companies = lazy(() => import("./components/Companies"));
 
 type ProfileStatus = "checking" | "missing" | "ready" | "error";
 
@@ -33,11 +39,15 @@ const App = () => {
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("checking");
   const [checkAttempt, setCheckAttempt] = useState(0);
   const navigate = useNavigate();
+  const access = useAccess();
+  // A dónde se entra: la primera pantalla que la persona puede usar (no todas pueden facturar)
+  const homeSection = firstAllowedSection(access);
+  const homeDashboard = `/dashboard/${homeSection}`;
 
   const handleLoginSuccess = () => {
     setProfileStatus("checking");
     setIsAuthenticated(true);
-    navigate("/dashboard/invoices", { replace: true });
+    navigate(`/dashboard/${firstAllowedSection(readAccess())}`, { replace: true });
   };
 
   const handleLogout = () => {
@@ -83,7 +93,7 @@ const App = () => {
     ? "/"
     : profileStatus === "missing"
       ? "/billing-setup"
-      : "/dashboard/invoices";
+      : homeDashboard;
 
   const requireProfile = (element: ReactNode) => {
     if (!isAuthenticated) return <Navigate to="/" replace />;
@@ -113,7 +123,7 @@ const App = () => {
     if (!isAuthenticated) return <Navigate to="/" replace />;
     if (profileStatus === "checking") return <FullPageSpinner />;
     if (profileStatus === "ready") {
-      return <Navigate to="/dashboard/invoices" replace />;
+      return <Navigate to={homeDashboard} replace />;
     }
     return (
       <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-8">
@@ -135,12 +145,17 @@ const App = () => {
         <BillingProfile
           onSaved={() => {
             setProfileStatus("ready");
-            navigate("/dashboard/invoices", { replace: true });
+            navigate(homeDashboard, { replace: true });
           }}
         />
       </div>
     );
   };
+
+  /** Pantalla que exige permisos: sin ellos se muestra el aviso en lugar del contenido. */
+  const guard = (section: keyof typeof SECTION_PERMISSIONS, element: ReactNode) => (
+    <RequirePermission any={SECTION_PERMISSIONS[section]}>{element}</RequirePermission>
+  );
 
   return (
     <Suspense fallback={<FullPageSpinner />}>
@@ -162,15 +177,17 @@ const App = () => {
           path="/dashboard"
           element={requireProfile(<Dashboard onLogout={handleLogout} />)}
         >
-          <Route index element={<Navigate to="invoices" replace />} />
-          <Route path="invoices" element={<Invoices />} />
-          <Route path="invoices-list" element={<InvoiceSearch />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="sale-points" element={<SalePoints />} />
-          <Route path="billing-profile" element={<BillingProfile />} />
-        <Route path="audit" element={<AuditLog />} />
-        <Route path="trash" element={<Trash />} />
-        <Route path="settings" element={<Settings />} />
+          <Route index element={<Navigate to={homeSection} replace />} />
+          <Route path="invoices" element={guard("invoices", <Invoices />)} />
+          <Route path="invoices-list" element={guard("invoices-list", <InvoiceSearch />)} />
+          <Route path="customers" element={guard("customers", <Customers />)} />
+          <Route path="sale-points" element={guard("sale-points", <SalePoints />)} />
+          <Route path="billing-profile" element={guard("billing-profile", <BillingProfile />)} />
+          <Route path="audit" element={<AuditLog />} />
+          <Route path="trash" element={guard("trash", <Trash />)} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="team" element={guard("team", <Team />)} />
+          <Route path="companies" element={<Companies />} />
         </Route>
 
         <Route path="*" element={<Navigate to={home} replace />} />

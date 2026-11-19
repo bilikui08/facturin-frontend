@@ -38,13 +38,13 @@ describe("Selector de empresa", () => {
     expect(Array.from(select.options).map((o) => o.textContent)).toEqual(["A SA", "B SRL"]);
   });
 
-  it("al elegir otra cambia de empresa y recarga la aplicación (sin datos de la anterior)", async () => {
+  it("al elegir otra cambia de empresa y recarga la aplicación (sin datos de la anterior); entra a la primera pantalla permitida", async () => {
     render(<CompanySwitcher />);
     const user = userEvent.setup();
 
     await user.selectOptions(await screen.findByLabelText("Empresa"), "2");
 
-    await waitFor(() => expect(reloadAt).toHaveBeenCalledWith("/dashboard/invoices"));
+    await waitFor(() => expect(reloadAt).toHaveBeenCalledWith("/"));
     expect(switchOrganization).toHaveBeenCalledWith(2);
   });
 

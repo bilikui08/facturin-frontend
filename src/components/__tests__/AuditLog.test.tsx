@@ -14,7 +14,7 @@ const row = (extra: Partial<AuditLogRow>): AuditLogRow => ({
   id: 1,
   created_at: "2026-11-18T22:57:02.000000Z",
   user_id: 1,
-  owner_id: 1,
+  organization_id: 1,
   action: "customer.created",
   auditable_type: "customer",
   auditable_id: 3,

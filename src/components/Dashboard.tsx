@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { FileText, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users } from "lucide-react";
+import { Building2, FileText, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users, UsersRound } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,10 +24,19 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useAccess } from "../hooks/useAccess";
+import { useSystemAdmin } from "../hooks/useSystemAdmin";
+import type { SectionKey } from "../config/permissions";
 import CompanySwitcher from "./CompanySwitcher";
 import ThemeToggle from "./ThemeToggle";
 
-const sections = [
+interface Section {
+  path: SectionKey;
+  label: string;
+  icon: typeof Receipt;
+}
+
+const sections: Section[] = [
   { path: "invoices", label: "Facturar", icon: Receipt },
   { path: "invoices-list", label: "Comprobantes emitidos", icon: FileText },
   { path: "customers", label: "Clientes", icon: Users },
@@ -37,8 +46,14 @@ const sections = [
   { path: "trash", label: "Papelera", icon: Trash2 },
 ];
 
+// Administración: va aparte del menú de trabajo
+const adminSections: Section[] = [
+  { path: "team", label: "Equipo", icon: UsersRound },
+  { path: "companies", label: "Empresas", icon: Building2 },
+];
+
 // Va abajo del menú, arriba de "Cerrar sesión"
-const settingsSection = { path: "settings", label: "Configuración", icon: SettingsIcon };
+const settingsSection: Section = { path: "settings", label: "Configuración", icon: SettingsIcon };
 
 interface DashboardProps {
   onLogout: () => void;
@@ -46,8 +61,15 @@ interface DashboardProps {
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const { pathname } = useLocation();
+  const { canSee } = useAccess();
+  const isSystemAdmin = useSystemAdmin();
+
+  // Solo se muestra lo que la persona puede usar (el servidor igual lo hace cumplir)
+  const visibleSections = sections.filter((section) => canSee(section.path));
+  const visibleAdmin = adminSections.filter((section) => (section.path === "companies" ? isSystemAdmin : canSee(section.path)));
+
   const activeSectionLabel =
-    [...sections, settingsSection].find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
+    [...sections, ...adminSections, settingsSection].find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
 
   return (
     <SidebarProvider>
@@ -70,7 +92,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             <SidebarGroupLabel>Menú</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu aria-label="Navegación principal">
-                {sections.map(({ path, label, icon: Icon }) => (
+                {visibleSections.map(({ path, label, icon: Icon }) => (
                   <SidebarMenuItem key={path}>
                     <SidebarMenuButton
                       asChild
@@ -87,6 +109,26 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {visibleAdmin.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel>Administración</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu aria-label="Administración">
+                  {visibleAdmin.map(({ path, label, icon: Icon }) => (
+                    <SidebarMenuItem key={path}>
+                      <SidebarMenuButton asChild isActive={pathname.endsWith(`/${path}`)} tooltip={label}>
+                        <NavLink to={path}>
+                          <Icon aria-hidden="true" />
+                          <span>{label}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </SidebarContent>
 
         <SidebarFooter>

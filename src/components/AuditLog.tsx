@@ -26,6 +26,8 @@ import {
   auditUserLabel,
   formatDateTime,
 } from "../utils/auditFormat";
+import { P } from "../config/permissions";
+import { useAccess } from "../hooks/useAccess";
 import DateInput from "./DateInput";
 import FormField from "./FormField";
 import LoadingBlock from "./LoadingBlock";
@@ -56,6 +58,7 @@ const buildQuery = (filters: Filters, page: number, perPage: number): string => 
 
 /** Quién hizo qué y cuándo sobre los datos del usuario (solo lectura). */
 const AuditLog = () => {
+  const seesAll = useAccess().can(P.auditViewAll);
   const [form, setForm] = useState<Filters>(emptyFilters);
   const [applied, setApplied] = useState<Filters>(emptyFilters);
   const [page, setPage] = useState(1);
@@ -92,7 +95,9 @@ const AuditLog = () => {
   return (
     <section className="space-y-6">
       <p className="text-muted-foreground">
-        Registro de quién hizo qué sobre tus clientes, puntos de venta, perfil fiscal y comprobantes. Es de solo lectura.
+        {seesAll
+          ? "Registro de quién hizo qué sobre los clientes, puntos de venta, perfil fiscal y comprobantes de la empresa. Es de solo lectura."
+          : "Registro de lo que hiciste vos sobre los datos de la empresa. Es de solo lectura (ver lo de las demás personas requiere un permiso especial)."}
       </p>
 
       <Card>

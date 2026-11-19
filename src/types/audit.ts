@@ -6,7 +6,7 @@ export interface AuditLogRow {
   user_id: number | null;
   /** Nombre de esa persona en el momento de la acción (foto fija). Puede faltar en registros anteriores. */
   user_name?: string | null;
-  owner_id: number | null;
+  organization_id: number | null;
   action: string;
   auditable_type: string;
   auditable_id: number | null;
