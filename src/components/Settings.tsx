@@ -11,6 +11,7 @@ import { getSettings, updateSettings } from "../services/settingsService";
 import type { SettingDefinition } from "../types/settings";
 import LoadingBlock from "./LoadingBlock";
 import StatusAlert from "./StatusAlert";
+import TwoFactorCard from "./TwoFactorCard";
 import { useQuery } from "./useQuery";
 
 /** Agrupa los parámetros por sección, respetando el orden en que llegan. */
@@ -73,6 +74,9 @@ const Settings = () => {
 
   return (
     <section className="space-y-6">
+      {/* La seguridad de la cuenta es de la persona (no de la empresa): la ve cualquiera, con o sin permiso para cambiar los parámetros */}
+      <TwoFactorCard />
+
       <p className="text-muted-foreground">Parámetros de Facturín. Cada cambio queda registrado en la Auditoría.</p>
       {readOnly && <StatusAlert kind="error">Podés ver la configuración, pero no cambiarla: no tenés ese permiso en esta empresa.</StatusAlert>}
 

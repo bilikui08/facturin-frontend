@@ -9,6 +9,8 @@ const requestPasswordReset = vi.fn();
 const checkPasswordReset = vi.fn();
 const resetPassword = vi.fn();
 
+vi.mock("../Recaptcha", async () => import("../../test/recaptchaMock"));
+
 vi.mock("../../services/authService", () => ({
   requestPasswordReset: (...a: unknown[]) => requestPasswordReset(...a),
   checkPasswordReset: (...a: unknown[]) => checkPasswordReset(...a),
@@ -34,10 +36,12 @@ describe("Olvidé mi contraseña", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Email"), "  ana@example.com ");
+    expect((screen.getByRole("button", { name: "Enviarme el enlace" }) as HTMLButtonElement).disabled).toBe(true); // falta el captcha
+    await user.click(screen.getByLabelText("No soy un robot"));
     await user.click(screen.getByRole("button", { name: "Enviarme el enlace" }));
 
     expect(await screen.findByText(/Si el correo está registrado, vas a recibir un enlace/)).toBeTruthy();
-    expect(requestPasswordReset).toHaveBeenCalledWith("ana@example.com");
+    expect(requestPasswordReset).toHaveBeenCalledWith("ana@example.com", "captcha-ok");
   });
 
   it("no envía sin email y muestra el error del servidor (por ejemplo, demasiados intentos)", async () => {
@@ -47,6 +51,7 @@ describe("Olvidé mi contraseña", () => {
 
     expect((screen.getByRole("button", { name: "Enviarme el enlace" }) as HTMLButtonElement).disabled).toBe(true);
     await user.type(screen.getByLabelText("Email"), "ana@example.com");
+    await user.click(screen.getByLabelText("No soy un robot"));
     await user.click(screen.getByRole("button", { name: "Enviarme el enlace" }));
 
     expect(await screen.findByText(/demasiados intentos/)).toBeTruthy();

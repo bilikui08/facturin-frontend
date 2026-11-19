@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { requestPasswordReset } from "../services/authService";
 import { useBranding } from "../hooks/useBranding";
+import Recaptcha from "./Recaptcha";
 import StatusAlert from "./StatusAlert";
 
 /** Pantalla pública: pide el email y manda el enlace para elegir una contraseña nueva. La respuesta no revela si la cuenta existe. */
@@ -17,6 +18,8 @@ const ForgotPassword = () => {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,11 +27,12 @@ const ForgotPassword = () => {
     setSending(true);
 
     try {
-      await requestPasswordReset(email.trim());
+      await requestPasswordReset(email.trim(), captcha ?? undefined);
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo enviar el pedido");
     } finally {
+      setCaptchaReset((n) => n + 1);
       setSending(false);
     }
   };
@@ -79,9 +83,11 @@ const ForgotPassword = () => {
                 </div>
               </div>
 
+              <Recaptcha onChange={setCaptcha} resetKey={captchaReset} />
+
               {error && <StatusAlert kind="error">{error}</StatusAlert>}
 
-              <Button type="submit" className="w-full" disabled={sending || email.trim() === ""}>
+              <Button type="submit" className="w-full" disabled={sending || email.trim() === "" || !captcha}>
                 {sending && <Spinner aria-label="Enviando" />}
                 {sending ? "Enviando..." : "Enviarme el enlace"}
               </Button>

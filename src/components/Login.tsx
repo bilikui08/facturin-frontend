@@ -6,9 +6,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { login, selectOrganization, type OrganizationSummary } from "../services/authService";
+import { login, selectOrganization, type LoginResult, type OrganizationSummary } from "../services/authService";
 import { useBranding } from "../hooks/useBranding";
+import Recaptcha from "./Recaptcha";
 import StatusAlert from "./StatusAlert";
+import TwoFactorStep from "./TwoFactorStep";
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -24,6 +26,11 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   // Con varias empresas el login tiene un segundo paso: elegir con cuál trabajar
   const [pending, setPending] = useState<{ selectionToken: string; organizations: OrganizationSummary[] } | null>(null);
   const [choosing, setChoosing] = useState<number | null>(null);
+  // Segundo factor (verificación en dos pasos): se pide después de que usuario, contraseña y captcha fueron correctos
+  const [twoFactor, setTwoFactor] = useState<{ challengeToken: string; mode: "verify" | "setup" } | null>(null);
+  // Cada respuesta del captcha vale una sola vez: tras cada intento se pide otra
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,18 +38,26 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password, remember);
-
-      if (result?.kind === "select-organization") {
-        setPending({ selectionToken: result.selectionToken, organizations: result.organizations });
-        setPassword("");
-      } else {
-        onLoginSuccess();
-      }
+      const result = await login(email, password, remember, captcha ?? undefined);
+      setPassword("");
+      handleResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado");
     } finally {
+      setCaptchaReset((n) => n + 1);
       setIsLoading(false);
+    }
+  };
+
+  /** Cómo sigue el ingreso: segundo factor, elegir empresa o entrar */
+  const handleResult = (result: LoginResult) => {
+    if (result.kind === "two-factor") {
+      setTwoFactor({ challengeToken: result.challengeToken, mode: result.mode });
+    } else if (result.kind === "select-organization") {
+      setTwoFactor(null);
+      setPending({ selectionToken: result.selectionToken, organizations: result.organizations });
+    } else {
+      onLoginSuccess();
     }
   };
 
@@ -62,6 +77,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
 
   const backToCredentials = () => {
     setPending(null);
+    setTwoFactor(null);
     setError("");
   };
 
@@ -74,7 +90,9 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
         <span className="text-2xl font-semibold tracking-tight">{systemName ?? "\u00a0"}</span>
       </div>
 
-      {pending ? (
+      {twoFactor ? (
+        <TwoFactorStep challengeToken={twoFactor.challengeToken} mode={twoFactor.mode} remember={remember} onResult={handleResult} onCancel={backToCredentials} />
+      ) : pending ? (
         <Card className="w-full max-w-sm shadow-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-lg">Elegí la empresa</CardTitle>
@@ -165,9 +183,11 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
               </a>
             </div>
 
+            <Recaptcha onChange={setCaptcha} resetKey={captchaReset} />
+
             {error && <StatusAlert kind="error">{error}</StatusAlert>}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !captcha}>
               {isLoading && <Spinner aria-label="Ingresando" />}
               {isLoading ? "Ingresando..." : "Ingresar"}
             </Button>

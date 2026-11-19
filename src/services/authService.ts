@@ -58,7 +58,9 @@ export interface OrganizationSummary {
  */
 export type LoginResult =
   | { kind: "signed-in" }
-  | { kind: "select-organization"; selectionToken: string; organizations: OrganizationSummary[] };
+  | { kind: "select-organization"; selectionToken: string; organizations: OrganizationSummary[] }
+  /** Contraseña correcta pero falta el segundo factor: `verify` pide el código; `setup` es el primer ingreso (hay que configurar la aplicación) */
+  | { kind: "two-factor"; challengeToken: string; mode: "verify" | "setup" };
 
 const parseOrganizations = (value: unknown): OrganizationSummary[] =>
   Array.isArray(value)
@@ -76,10 +78,13 @@ const postAuth = async (path: string, body: unknown): Promise<AuthResponse & { d
     body: JSON.stringify(body),
   });
 
-  const result = (await response.json().catch(() => ({}))) as AuthResponse;
+  const result = (await response.json().catch(() => ({}))) as AuthResponse & { errors?: Record<string, string[]> };
+
+  if (response.status === 429) throw new Error("Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.");
 
   if (!response.ok || !result.success || !result.data) {
-    throw new Error(result.message || "No se pudo iniciar sesión");
+    const field = result.errors ? Object.values(result.errors).flat().find((v) => typeof v === "string") : undefined;
+    throw new Error(field || result.message || "No se pudo iniciar sesión");
   }
 
   return { ...result, data: result.data };
@@ -100,9 +105,23 @@ export const login = async (
   email: string,
   password: string,
   remember: boolean,
+  captcha?: string,
 ): Promise<LoginResult> => {
-  const { data } = await postAuth("/auth/login", { email, password });
+  const { data } = await postAuth("/auth/login", { email, password, ...(captcha ? { captcha } : {}) });
 
+  if (data.requires_two_factor === true) {
+    const challengeToken = pickString(data, ["challenge_token"]);
+
+    if (!challengeToken) throw new Error("El servidor de autenticación no devolvió el permiso para la verificación en dos pasos");
+
+    return { kind: "two-factor", challengeToken, mode: data.two_factor === "setup" ? "setup" : "verify" };
+  }
+
+  return continueLogin(data, remember);
+};
+
+/** Lo que sigue cuando ya se comprobó todo: elegir empresa (si tiene varias) o guardar la sesión. */
+const continueLogin = (data: Record<string, unknown>, remember: boolean): LoginResult => {
   if (data.requires_organization === true) {
     const organizations = parseOrganizations(data.organizations);
     const selectionToken = pickString(data, ["selection_token"]);
@@ -117,6 +136,39 @@ export const login = async (
   saveSession(data, remember);
 
   return { kind: "signed-in" };
+};
+
+/** Primer ingreso con 2FA: el secreto y la dirección que se convierte en el QR para la aplicación de autenticación. */
+export const twoFactorSetup = async (challengeToken: string): Promise<{ secret: string; uri: string }> => {
+  const { data } = await postAuth("/auth/login/two-factor/setup", { challenge_token: challengeToken });
+  const secret = pickString(data, ["secret"]);
+  const uri = pickString(data, ["uri"]);
+
+  if (!secret || !uri) throw new Error("El servidor no devolvió los datos para configurar la aplicación");
+
+  return { secret, uri };
+};
+
+/** Segundo factor del ingreso: el código de la aplicación (6 dígitos) o uno de recuperación. */
+export const twoFactorVerify = async (challengeToken: string, code: string, remember: boolean): Promise<LoginResult> => {
+  const { data } = await postAuth("/auth/login/two-factor/verify", { challenge_token: challengeToken, code });
+
+  return continueLogin(data, remember);
+};
+
+/**
+ * Confirma la configuración con el primer código. Devuelve los códigos de recuperación (única vez que se ven) y `finish`, que
+ * recién entonces guarda la sesión: así no se entra antes de que la persona haya anotado los códigos.
+ */
+export const twoFactorConfirm = async (
+  challengeToken: string,
+  code: string,
+  remember: boolean,
+): Promise<{ recoveryCodes: string[]; finish: () => LoginResult }> => {
+  const { data } = await postAuth("/auth/login/two-factor/confirm", { challenge_token: challengeToken, code });
+  const recoveryCodes = Array.isArray(data.recovery_codes) ? data.recovery_codes.filter((c): c is string => typeof c === "string") : [];
+
+  return { recoveryCodes, finish: () => continueLogin(data, remember) };
 };
 
 /** Segundo paso del login (solo con varias empresas): con el permiso temporal elige una y entra. */
@@ -202,7 +254,8 @@ const callPublic = async (path: string, body: unknown, signal?: AbortSignal): Pr
 };
 
 /** Pide el email para restablecer la contraseña. La respuesta es siempre la misma, exista o no la cuenta. */
-export const requestPasswordReset = (email: string): Promise<string> => callPublic("/auth/forgot-password", { email });
+export const requestPasswordReset = (email: string, captcha?: string): Promise<string> =>
+  callPublic("/auth/forgot-password", { email, ...(captcha ? { captcha } : {}) });
 
 /** Indica si el enlace del email sigue sirviendo (para avisar antes de pedir la contraseña nueva). Falla si no. */
 export const checkPasswordReset = async (email: string, token: string, signal?: AbortSignal): Promise<void> => {

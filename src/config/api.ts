@@ -31,3 +31,7 @@ export const AUTH_API_URL: string =
   import.meta.env.VITE_AUTH_API_URL ?? environments[APP_ENV].auth;
 export const BILLING_API_URL: string =
   import.meta.env.VITE_BILLING_API_URL ?? environments[APP_ENV].billing;
+
+// Clave PÚBLICA del sitio de Google reCAPTCHA v2 (la secreta vive solo en el .env de auth-api). Los dominios autorizados
+// (facturin.gustavoluis.me y localhost) se cargan en el panel de reCAPTCHA. Se puede pisar con VITE_RECAPTCHA_SITE_KEY.
+export const RECAPTCHA_SITE_KEY: string = import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? "6Ldk_l4UAAAAANfcV2MsS4hKLrtJoLpcAumRaGjh";
