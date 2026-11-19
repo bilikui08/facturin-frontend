@@ -26,7 +26,9 @@ export type SectionKey =
   | "trash"
   | "settings"
   | "team"
-  | "companies";
+  | "companies"
+  | "system"
+  | "emails";
 
 /** Permisos que habilitan cada sección (vacío = cualquier persona autenticada; "companies" depende del rol del sistema). */
 export const SECTION_PERMISSIONS: Record<SectionKey, readonly string[]> = {
@@ -40,6 +42,8 @@ export const SECTION_PERMISSIONS: Record<SectionKey, readonly string[]> = {
   settings: [],
   team: [P.membersManage],
   companies: [],
+  system: [],
+  emails: [],
 };
 
 /** Orden en el que se busca a dónde mandar a la persona al entrar. */

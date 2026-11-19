@@ -5,6 +5,9 @@ import Login from "../Login";
 
 const login = vi.fn();
 const selectOrganization = vi.fn();
+const getBranding = vi.fn();
+
+vi.mock("../../services/systemService", () => ({ getBranding: (...args: unknown[]) => getBranding(...args) }));
 
 vi.mock("../../services/authService", () => ({
   login: (...args: unknown[]) => login(...args),
@@ -15,6 +18,23 @@ describe("Login", () => {
   beforeEach(() => {
     login.mockReset();
     selectOrganization.mockReset();
+    getBranding.mockReset().mockResolvedValue(null);
+  });
+
+  it("muestra el nombre del sistema configurado, no uno fijo", async () => {
+    getBranding.mockResolvedValue("Mi ERP");
+    render(<Login onLoginSuccess={vi.fn()} />);
+
+    expect(await screen.findByText("Mi ERP")).toBeTruthy();
+    expect(screen.getByText("Panel de Mi ERP")).toBeTruthy();
+    expect(screen.queryByText("Facturín")).toBeNull();
+  });
+
+  it("si no se puede consultar el nombre igual se puede ingresar", async () => {
+    render(<Login onLoginSuccess={vi.fn()} />);
+
+    expect(await screen.findByRole("button", { name: "Ingresar" })).toBeTruthy();
+    expect(screen.queryByText(/Panel de/)).toBeNull();
   });
 
   it("envía email, contraseña y la opción recordarme", async () => {

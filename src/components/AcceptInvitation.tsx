@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { acceptInvitation, getInvitation } from "../services/authService";
 import LoadingBlock from "./LoadingBlock";
+import { useBranding } from "../hooks/useBranding";
 import StatusAlert from "./StatusAlert";
 import { useQuery } from "./useQuery";
 
@@ -21,6 +22,7 @@ const MIN_PASSWORD = 8;
 
 /** Pantalla pública a la que llega el enlace del email de invitación: elegir nombre y contraseña para crear la cuenta. */
 const AcceptInvitation = ({ onAccepted }: AcceptInvitationProps) => {
+  const systemName = useBranding();
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [name, setName] = useState("");
@@ -71,7 +73,7 @@ const AcceptInvitation = ({ onAccepted }: AcceptInvitationProps) => {
         <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Receipt className="size-5" aria-hidden="true" />
         </span>
-        <span className="text-2xl font-semibold tracking-tight">Facturín</span>
+        <span className="text-2xl font-semibold tracking-tight">{systemName ?? "\u00a0"}</span>
       </div>
 
       <Card className="w-full max-w-sm shadow-sm">

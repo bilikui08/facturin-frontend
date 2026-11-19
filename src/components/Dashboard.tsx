@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { Building2, FileText, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users, UsersRound } from "lucide-react";
+import { Building2, FileText, Mail, Settings2, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users, UsersRound } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -50,6 +50,8 @@ const sections: Section[] = [
 const adminSections: Section[] = [
   { path: "team", label: "Equipo", icon: UsersRound },
   { path: "companies", label: "Empresas", icon: Building2 },
+  { path: "system", label: "Sistema", icon: Settings2 },
+  { path: "emails", label: "Emails", icon: Mail },
 ];
 
 // Va abajo del menú, arriba de "Cerrar sesión"
@@ -66,7 +68,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
   // Solo se muestra lo que la persona puede usar (el servidor igual lo hace cumplir)
   const visibleSections = sections.filter((section) => canSee(section.path));
-  const visibleAdmin = adminSections.filter((section) => (section.path === "companies" ? isSystemAdmin : canSee(section.path)));
+  const visibleAdmin = adminSections.filter((section) => (["companies", "system", "emails"].includes(section.path) ? isSystemAdmin : canSee(section.path)));
 
   const activeSectionLabel =
     [...sections, ...adminSections, settingsSection].find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";

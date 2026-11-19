@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { login, selectOrganization, type OrganizationSummary } from "../services/authService";
+import { useBranding } from "../hooks/useBranding";
 import StatusAlert from "./StatusAlert";
 
 interface LoginProps {
@@ -14,6 +15,7 @@ interface LoginProps {
 }
 
 const Login = ({ onLoginSuccess }: LoginProps) => {
+  const systemName = useBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -69,7 +71,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
         <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Receipt className="size-5" aria-hidden="true" />
         </span>
-        <span className="text-2xl font-semibold tracking-tight">Facturín</span>
+        <span className="text-2xl font-semibold tracking-tight">{systemName ?? "\u00a0"}</span>
       </div>
 
       {pending ? (
@@ -173,7 +175,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
       </Card>
       )}
 
-      <p className="text-center text-xs text-muted-foreground">Panel de gestión de Facturín</p>
+      <p className="text-center text-xs text-muted-foreground">{systemName ? `Panel de ${systemName}` : "\u00a0"}</p>
     </main>
   );
 };
