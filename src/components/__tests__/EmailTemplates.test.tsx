@@ -24,7 +24,11 @@ const template = (extra = {}) => ({
   key: "invitation",
   label: "Invitación a una empresa",
   description: "Le llega a una persona sin cuenta.",
-  variables: [{ name: "invitador", description: "Nombre de quien invita" }, { name: "empresa", description: "Nombre de la empresa" }],
+  variables: [
+    { name: "invitador", description: "Nombre de quien invita", example: "Ana Pérez", editable: true },
+    { name: "empresa", description: "Nombre de la empresa", example: "Empresa de Ejemplo SA", editable: true },
+    { name: "sistema", description: "Nombre del sistema", example: null, editable: false },
+  ],
   is_customized: false,
   current: draft,
   defaults: draft,
@@ -72,6 +76,34 @@ describe("Emails (plantillas)", () => {
     expect(screen.getByText(/El enlace del botón lo agrega el sistema/)).toBeTruthy();
   });
 
+  it("explica que las variables las completa el sistema y deja probarlas con otro dato", async () => {
+    render(<EmailTemplates />);
+    await screen.findByLabelText("Asunto");
+
+    expect(screen.getByText(/no se completan a mano/)).toBeTruthy();
+    expect(screen.getByText(/el sistema las\s+reemplaza solo con los datos reales/)).toBeTruthy();
+    expect(screen.getByText("Nombre de quien invita")).toBeTruthy();
+    expect((screen.getByLabelText("Ejemplo de {invitador}") as HTMLInputElement).value).toBe("Ana Pérez");
+    expect(screen.getByText("Lo toma de Sistema")).toBeTruthy(); // {sistema} no se prueba con otro dato desde acá
+    expect(screen.queryByLabelText("Ejemplo de {sistema}")).toBeNull();
+  });
+
+  it("probar con otro dato (Juancito) vuelve a armar la vista previa sin tocar la plantilla ni guardar nada", async () => {
+    render(<EmailTemplates />);
+    await screen.findByLabelText("Asunto");
+    await settle();
+    previewEmailTemplate.mockClear();
+
+    fireEvent.change(screen.getByLabelText("Ejemplo de {invitador}"), { target: { value: "Juancito" } });
+    await settle();
+
+    expect(previewEmailTemplate).toHaveBeenCalledTimes(1);
+    expect(previewEmailTemplate.mock.calls[0][1]).toEqual(draft); // el texto de la plantilla no cambió
+    expect(previewEmailTemplate.mock.calls[0][2]).toEqual({ invitador: "Juancito", empresa: "Empresa de Ejemplo SA" });
+    expect(saveEmailTemplate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Guardar cambios" })).toHaveProperty("disabled", true); // no es un cambio de la plantilla
+  });
+
   it("muestra la vista previa con el asunto, en un iframe aislado, una vez que se deja de escribir", async () => {
     render(<EmailTemplates />);
     await screen.findByLabelText("Asunto");
@@ -95,6 +127,7 @@ describe("Emails (plantillas)", () => {
     expect(previewEmailTemplate).toHaveBeenCalledTimes(1);
     expect(previewEmailTemplate.mock.calls[0][0]).toBe("invitation");
     expect(previewEmailTemplate.mock.calls[0][1]).toEqual({ ...draft, heading: "Título nuevo" });
+    expect(previewEmailTemplate.mock.calls[0][2]).toEqual({ invitador: "Ana Pérez", empresa: "Empresa de Ejemplo SA" });
     expect(saveEmailTemplate).not.toHaveBeenCalled();
   });
 
@@ -163,7 +196,7 @@ describe("Emails (plantillas)", () => {
 
     await user.click(screen.getByRole("button", { name: /Enviar prueba a mi correo/ }));
 
-    await waitFor(() => expect(sendTestEmail).toHaveBeenCalledWith("invitation", { ...draft, heading: "Probando" }));
+    await waitFor(() => expect(sendTestEmail).toHaveBeenCalledWith("invitation", { ...draft, heading: "Probando" }, { invitador: "Ana Pérez", empresa: "Empresa de Ejemplo SA" }));
     expect(await screen.findByText("Correo de prueba enviado a yo@ejemplo.com.")).toBeTruthy();
   });
 

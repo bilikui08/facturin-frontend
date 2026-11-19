@@ -12,11 +12,23 @@ export interface EmailTemplate {
   key: string;
   label: string;
   description: string;
-  variables: { name: string; description: string }[];
+  variables: EmailVariable[];
   is_customized: boolean;
   current: EmailTemplateDraft;
   defaults: EmailTemplateDraft;
 }
+
+export interface EmailVariable {
+  name: string;
+  description: string;
+  /** Con qué dato se ve en la vista previa (null: lo completa el sistema, como el nombre del sistema) */
+  example: string | null;
+  /** Se puede probar con otro dato de ejemplo */
+  editable: boolean;
+}
+
+/** Datos de ejemplo para la vista previa y la prueba de envío (no se guardan). Por variable: {invitador: "Juancito"}. */
+export type EmailSamples = Record<string, string>;
 
 export interface EmailTemplateDraft {
   subject: string;
@@ -61,10 +73,10 @@ export const updateSystemName = (name: string | null) => call<SystemSettings>("/
 export const getEmailTemplates = (signal?: AbortSignal) => call<EmailTemplate[]>("/auth/admin/email-templates", "GET", undefined, signal);
 export const saveEmailTemplate = (key: string, draft: EmailTemplateDraft) => call<EmailTemplate>(`/auth/admin/email-templates/${key}`, "PUT", draft);
 export const restoreEmailTemplate = (key: string) => call<EmailTemplate>(`/auth/admin/email-templates/${key}`, "DELETE");
-export const previewEmailTemplate = (key: string, draft: EmailTemplateDraft, signal?: AbortSignal) =>
-  call<EmailPreview>(`/auth/admin/email-templates/${key}/preview`, "POST", draft, signal);
-export const sendTestEmail = (key: string, draft: EmailTemplateDraft) =>
-  call<{ sent: boolean; to: string }>(`/auth/admin/email-templates/${key}/test`, "POST", draft);
+export const previewEmailTemplate = (key: string, draft: EmailTemplateDraft, samples: EmailSamples, signal?: AbortSignal) =>
+  call<EmailPreview>(`/auth/admin/email-templates/${key}/preview`, "POST", { ...draft, samples }, signal);
+export const sendTestEmail = (key: string, draft: EmailTemplateDraft, samples: EmailSamples) =>
+  call<{ sent: boolean; to: string }>(`/auth/admin/email-templates/${key}/test`, "POST", { ...draft, samples });
 
 // --- Marca (pública): el nombre del sistema que muestra el login antes de autenticar
 export const getBranding = async (signal?: AbortSignal): Promise<string | null> => {

@@ -59,8 +59,8 @@ describe("ajustes y plantillas", () => {
 
     await saveEmailTemplate("invitation", draft);
     await restoreEmailTemplate("invitation");
-    await previewEmailTemplate("invitation", draft);
-    await sendTestEmail("invitation", draft);
+    await previewEmailTemplate("invitation", draft, { invitador: "Juancito" });
+    await sendTestEmail("invitation", draft, {});
 
     expect([0, 1, 2, 3].map((n) => `${call(n).init.method} ${call(n).url.replace(AUTH_API_URL, "")}`)).toEqual([
       "PUT /auth/admin/email-templates/invitation",
@@ -68,7 +68,7 @@ describe("ajustes y plantillas", () => {
       "POST /auth/admin/email-templates/invitation/preview",
       "POST /auth/admin/email-templates/invitation/test",
     ]);
-    expect(JSON.parse(call(2).init.body as string)).toEqual(draft);
+    expect(JSON.parse(call(2).init.body as string)).toEqual({ ...draft, samples: { invitador: "Juancito" } });
   });
 
   it("un rechazo de validación llega como el primer mensaje útil", async () => {

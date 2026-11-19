@@ -25,6 +25,7 @@ import {
   saveEmailTemplate,
   sendTestEmail,
   type EmailPreview,
+  type EmailSamples,
   type EmailTemplate,
   type EmailTemplateDraft,
 } from "../services/systemService";
@@ -60,6 +61,10 @@ interface TemplateEditorProps {
 
 const TemplateEditor = ({ template, onChanged, notice, setNotice }: TemplateEditorProps) => {
   const [draft, setDraft] = useState<EmailTemplateDraft>(template.current);
+  // Datos con los que se ve la vista previa (no se guardan ni afectan los correos reales)
+  const [samples, setSamples] = useState<EmailSamples>(() =>
+    Object.fromEntries(template.variables.filter((v) => v.editable && v.example).map((v) => [v.name, v.example as string])),
+  );
   const [preview, setPreview] = useState<EmailPreview | null>(null);
   const [previewError, setPreviewError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -73,7 +78,7 @@ const TemplateEditor = ({ template, onChanged, notice, setNotice }: TemplateEdit
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      previewEmailTemplate(template.key, draft, controller.signal)
+      previewEmailTemplate(template.key, draft, samples, controller.signal)
         .then((result) => {
           setPreview(result);
           setPreviewError("");
@@ -87,7 +92,7 @@ const TemplateEditor = ({ template, onChanged, notice, setNotice }: TemplateEdit
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [template.key, draft]);
+  }, [template.key, draft, samples]);
 
   const insertVariable = (name: string) => {
     const target = (document.activeElement as HTMLInputElement | HTMLTextAreaElement | null)?.id?.startsWith("tpl-")
@@ -137,7 +142,7 @@ const TemplateEditor = ({ template, onChanged, notice, setNotice }: TemplateEdit
 
   const sendTest = () =>
     run(async () => {
-      const result = await sendTestEmail(template.key, draft);
+      const result = await sendTestEmail(template.key, draft, samples);
       setNotice(
         result.sent
           ? { kind: "success", text: `Correo de prueba enviado a ${result.to}.` }
@@ -163,25 +168,54 @@ const TemplateEditor = ({ template, onChanged, notice, setNotice }: TemplateEdit
             </FormField>
           ))}
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Variables</p>
-            <p className="text-xs text-muted-foreground">Se reemplazan por los datos reales al enviar. Tocá una para insertarla donde tenés el cursor.</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Variables</p>
+              <p className="text-xs text-muted-foreground">
+                Las palabras entre llaves, como <span className="font-mono">{"{invitador}"}</span>, <strong>no se completan a mano</strong>: el sistema las
+                reemplaza solo con los datos reales de cada correo (por ejemplo, el nombre de quien invita). Tocá una para insertarla en el campo donde
+                tenés el cursor.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="hidden grid-cols-[9rem_1fr_11rem] gap-2 text-xs font-medium text-muted-foreground sm:grid" aria-hidden="true">
+                <span>Variable</span>
+                <span>Qué es</span>
+                <span>Dato de ejemplo (para probar)</span>
+              </div>
               {template.variables.map((variable) => (
-                <Button
-                  key={variable.name}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="font-mono"
-                  title={variable.description}
-                  aria-label={`Insertar ${variable.description}`}
-                  onClick={() => insertVariable(variable.name)}
-                >
-                  {`{${variable.name}}`}
-                </Button>
+                <div key={variable.name} className="grid items-center gap-2 sm:grid-cols-[9rem_1fr_11rem]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-start font-mono"
+                    aria-label={`Insertar ${variable.description}`}
+                    onClick={() => insertVariable(variable.name)}
+                  >
+                    {`{${variable.name}}`}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">{variable.description}</span>
+                  {variable.editable ? (
+                    <Input
+                      aria-label={`Ejemplo de {${variable.name}}`}
+                      value={samples[variable.name] ?? ""}
+                      maxLength={60}
+                      placeholder={variable.example ?? ""}
+                      onChange={(e) => setSamples({ ...samples, [variable.name]: e.target.value })}
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Lo toma de Sistema</span>
+                  )}
+                </div>
               ))}
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              La columna de la derecha es solo para probar: escribí ahí un dato (por ejemplo «Juancito») y mirá cómo queda en la vista previa. No se
+              guarda ni cambia los correos reales.
+            </p>
           </div>
 
           {notice && <StatusAlert kind={notice.kind}>{notice.text}</StatusAlert>}
