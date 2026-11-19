@@ -119,3 +119,63 @@ export const apiRequest = async <T = unknown>(
 
   return (isRecord(body) && "data" in body ? body.data : body) as T;
 };
+
+/** Un archivo descargado de la API (por ejemplo, una exportación a Excel). */
+export interface Download {
+  blob: Blob;
+  /** Nombre que indicó el servidor (`Content-Disposition`), si lo pudo leer. */
+  fileName: string | null;
+  /** Cantidad de filas que informó el servidor (`X-Export-Rows`). */
+  rows: number | null;
+}
+
+/** `attachment; filename="a.xlsx"; filename*=UTF-8''a.xlsx` -> `a.xlsx` */
+const fileNameFrom = (disposition: string | null): string | null => {
+  if (!disposition) return null;
+
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      // se prueba con el nombre simple
+    }
+  }
+
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+};
+
+/**
+ * GET autenticado que devuelve un archivo en vez de JSON. Renueva la sesión igual que `apiRequest`; si el servidor rechaza el
+ * pedido (por ejemplo, una exportación demasiado grande) responde JSON y se lanza con su mensaje.
+ */
+export const apiDownload = async (path: string): Promise<Download> => {
+  await refreshIfExpiring();
+
+  let response = await send(path, {});
+
+  if (response.status === 401 && (await refreshSession())) {
+    response = await send(path, {});
+  }
+
+  if (response.status === 401) {
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  }
+
+  if (response.status === 403) {
+    await resyncAfterForbidden();
+  }
+
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    throw new ApiError(getErrorMessage(body, `No se pudo exportar (${response.status})`), response.status);
+  }
+
+  const rows = Number(response.headers.get("X-Export-Rows"));
+
+  return {
+    blob: await response.blob(),
+    fileName: fileNameFrom(response.headers.get("Content-Disposition")),
+    rows: Number.isFinite(rows) && response.headers.has("X-Export-Rows") ? rows : null,
+  };
+};

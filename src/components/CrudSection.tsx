@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import FormField from "./FormField";
+import ExportButton from "./ExportButton";
 import LoadingBlock from "./LoadingBlock";
 import StatusAlert from "./StatusAlert";
 import UndoBanner from "./UndoBanner";
@@ -57,6 +58,8 @@ interface CrudSectionProps {
   single?: boolean;
   /** Solo consulta: sin botones para agregar, editar ni eliminar (la persona no tiene permiso de administrar). */
   readOnly?: boolean;
+  /** Ruta de la exportación a Excel de esta grilla (por ejemplo `/customers/export`). Sin ella no hay botón de exportar. */
+  exportPath?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -100,6 +103,7 @@ const CrudSection = ({
   fields,
   single = false,
   readOnly = false,
+  exportPath,
 }: CrudSectionProps) => {
   const emptyForm = useMemo(() => getEmptyForm(fields), [fields]);
   const referenceFields = useMemo(
@@ -291,12 +295,20 @@ const CrudSection = ({
         <p className="text-muted-foreground">
           {readOnly ? `Consultá tus ${title.toLowerCase()}.` : `Creá, consultá y actualizá tus ${title.toLowerCase()}.`}
         </p>
-        {!readOnly && (!single || items.length === 0) && !isFormOpen && (
-          <Button type="button" onClick={openCreateForm}>
-            <Plus />
-            Agregar {singularName.toLowerCase()}
-          </Button>
-        )}
+        <div className="flex flex-wrap items-start gap-2">
+          {exportPath && items.length > 0 && (
+            <ExportButton
+              path={exportPath}
+              options={[{ id: "all", label: "Todo", description: `Todos los ${title.toLowerCase()}.`, rows: items.length }]}
+            />
+          )}
+          {!readOnly && (!single || items.length === 0) && !isFormOpen && (
+            <Button type="button" onClick={openCreateForm}>
+              <Plus />
+              Agregar {singularName.toLowerCase()}
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && <StatusAlert kind="error">{error}</StatusAlert>}

@@ -35,6 +35,8 @@ const Customers = () => {
       endpoint="/customers"
       fields={customerFields}
       readOnly={!can(P.customerManage)}
+      // Exportar pide poder ver clientes (poder emitir comprobantes no alcanza: eso es solo para elegir a quién facturar)
+      exportPath={can(P.customerView) || can(P.customerManage) ? "/customers/export" : undefined}
     />
   );
 };

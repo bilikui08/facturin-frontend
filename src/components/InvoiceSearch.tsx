@@ -8,6 +8,7 @@ import { apiRequest } from "../services/apiClient";
 import type { Resource } from "../types/crud";
 import type { InvoiceRow, Paginated } from "../types/invoice";
 import DateInput from "./DateInput";
+import ExportButton from "./ExportButton";
 import FormField from "./FormField";
 import InvoiceTable from "./InvoiceTable";
 import LoadingBlock from "./LoadingBlock";
@@ -151,6 +152,11 @@ const InvoiceSearch = () => {
 
   const invoices = result?.data ?? [];
 
+  // Los filtros que se ven en la grilla (sin vacíos): la exportación los aplica igual, en el servidor
+  const appliedFilters = Object.fromEntries(
+    Object.entries(applied).filter(([, value]) => value.trim() !== "").map(([key, value]) => [key, value.trim()]),
+  );
+
   return (
     <section className="space-y-6">
       <Card>
@@ -252,9 +258,32 @@ const InvoiceSearch = () => {
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
           <CardTitle className="text-base">Comprobantes emitidos</CardTitle>
-          <span className="text-sm text-muted-foreground">
-            {result ? `${result.total} resultado${result.total === 1 ? "" : "s"}` : ""}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              {result ? `${result.total} resultado${result.total === 1 ? "" : "s"}` : ""}
+            </span>
+            {result && result.total > 0 && (
+              <ExportButton
+                path="/invoices/export"
+                filters={appliedFilters}
+                extraParams={{ page: { page: String(result.current_page), per_page: String(result.per_page) } }}
+                options={[
+                  {
+                    id: "page",
+                    label: "Pantalla",
+                    description: `Lo que estás viendo: la página ${result.current_page}.`,
+                    rows: invoices.length,
+                  },
+                  {
+                    id: "all",
+                    label: "Todo",
+                    description: "Todos los resultados de la búsqueda, de todas las páginas, con los filtros aplicados.",
+                    rows: result.total,
+                  },
+                ]}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading && !result ? (
