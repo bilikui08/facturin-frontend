@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router";
 import AcceptInvitation from "./components/AcceptInvitation";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 import Login from "./components/Login";
 import { UNAUTHORIZED_EVENT } from "./services/apiClient";
 import { hasAccessToken, logout } from "./services/authService";
@@ -177,6 +179,10 @@ const App = () => {
 
         {/* Pública: a ella llega el enlace del email de invitación (no hay registro abierto) */}
         <Route path="/accept-invitation" element={<AcceptInvitation onAccepted={handleLoginSuccess} />} />
+
+        {/* Públicas: recuperar la contraseña (el enlace del email lleva a /reset-password) */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/billing-setup" element={setupScreen()} />
 

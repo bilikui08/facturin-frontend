@@ -153,15 +153,16 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="remember"
-                checked={remember}
-                onCheckedChange={(checked) => setRemember(checked === true)}
-              />
-              <Label htmlFor="remember" className="font-normal">
-                Recordarme
-              </Label>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Checkbox id="remember" checked={remember} onCheckedChange={(checked) => setRemember(checked === true)} />
+                <Label htmlFor="remember" className="font-normal">
+                  Recordarme
+                </Label>
+              </div>
+              <a href="/forgot-password" className="text-sm text-primary underline-offset-4 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </a>
             </div>
 
             {error && <StatusAlert kind="error">{error}</StatusAlert>}

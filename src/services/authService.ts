@@ -181,6 +181,37 @@ export const acceptInvitation = async (
   return "created";
 };
 
+/** Llamada pública que puede responder sin `data` (por ejemplo, restablecer la contraseña): solo importa si salió bien. */
+const callPublic = async (path: string, body: unknown, signal?: AbortSignal): Promise<string> => {
+  const response = await fetch(`${AUTH_API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  const result = (await response.json().catch(() => ({}))) as AuthResponse & { errors?: Record<string, string[]> };
+
+  if (response.status === 429) throw new Error("Hiciste demasiados intentos. Esperá un minuto y probá de nuevo.");
+
+  if (!response.ok || !result.success) {
+    const field = result.errors ? Object.values(result.errors).flat().find((v) => typeof v === "string") : undefined;
+    throw new Error(field || result.message || "No se pudo completar la operación");
+  }
+
+  return result.message ?? "";
+};
+
+/** Pide el email para restablecer la contraseña. La respuesta es siempre la misma, exista o no la cuenta. */
+export const requestPasswordReset = (email: string): Promise<string> => callPublic("/auth/forgot-password", { email });
+
+/** Indica si el enlace del email sigue sirviendo (para avisar antes de pedir la contraseña nueva). Falla si no. */
+export const checkPasswordReset = async (email: string, token: string, signal?: AbortSignal): Promise<void> => {
+  await callPublic("/auth/reset-password/check", { email, token }, signal);
+};
+
+export const resetPassword = (data: { email: string; token: string; password: string; password_confirmation: string }): Promise<string> =>
+  callPublic("/auth/reset-password", data);
+
 export const hasAccessToken = (): boolean => activeStorage() !== null;
 
 /**

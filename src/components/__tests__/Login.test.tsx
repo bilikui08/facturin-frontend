@@ -21,6 +21,12 @@ describe("Login", () => {
     getBranding.mockReset().mockResolvedValue(null);
   });
 
+  it("ofrece recuperar la contraseña", () => {
+    render(<Login onLoginSuccess={vi.fn()} />);
+
+    expect(screen.getByRole("link", { name: "¿Olvidaste tu contraseña?" }).getAttribute("href")).toBe("/forgot-password");
+  });
+
   it("muestra el nombre del sistema configurado, no uno fijo", async () => {
     getBranding.mockResolvedValue("Mi ERP");
     render(<Login onLoginSuccess={vi.fn()} />);
