@@ -35,12 +35,12 @@ import { useQuery } from "./useQuery";
 interface Filters {
   auditable_type: string;
   action: string;
-  user_id: string;
+  user: string;
   date_from: string;
   date_to: string;
 }
 
-const emptyFilters = (): Filters => ({ auditable_type: "", action: "", user_id: "", date_from: "", date_to: "" });
+const emptyFilters = (): Filters => ({ auditable_type: "", action: "", user: "", date_from: "", date_to: "" });
 
 const PAGE_SIZES = [25, 50, 100];
 
@@ -118,8 +118,8 @@ const AuditLog = () => {
                   ))}
                 </NativeSelect>
               </FormField>
-              <FormField label="Usuario (id)" htmlFor="a-user">
-                <Input id="a-user" name="user_id" type="number" min="1" value={form.user_id} onChange={handleChange} />
+              <FormField label="Usuario" htmlFor="a-user">
+                <Input id="a-user" name="user" type="text" maxLength={120} placeholder="Nombre o id" autoComplete="off" value={form.user} onChange={handleChange} />
               </FormField>
               <FormField label="Desde" htmlFor="a-from">
                 <DateInput

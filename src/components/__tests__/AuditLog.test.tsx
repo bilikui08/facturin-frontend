@@ -138,12 +138,12 @@ describe("AuditLog (auditoría)", () => {
 
     await user.selectOptions(screen.getByLabelText("Registro"), "customer");
     await user.selectOptions(screen.getByLabelText("Acción"), "customer.deleted");
-    await user.type(screen.getByLabelText("Usuario (id)"), "7");
+    await user.type(screen.getByLabelText("Usuario"), "Gustavo");
     await user.click(screen.getByRole("button", { name: "Buscar" }));
 
     await waitFor(() => expect(lastQuery()).toContain("auditable_type=customer"));
     expect(lastQuery()).toContain("action=customer.deleted");
-    expect(lastQuery()).toContain("user_id=7");
+    expect(lastQuery()).toContain("user=Gustavo");
     expect(lastQuery()).toContain("page=1");
   });
 
