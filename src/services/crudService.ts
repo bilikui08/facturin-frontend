@@ -28,6 +28,12 @@ export const updateResource = <T = unknown>(
     body: JSON.stringify(values),
   });
 
+/** Deshace la baja de un registro (solo quien la hizo y dentro del plazo que informa el servidor). */
+export const restoreResource = <T = unknown>(
+  endpoint: string,
+  id: ResourceId,
+): Promise<T> => apiRequest<T>(`${endpoint}/${id}/restore`, { method: "POST" });
+
 export const deleteResource = (
   endpoint: string,
   id: ResourceId,

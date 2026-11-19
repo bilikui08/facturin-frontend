@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS: Record<string, { label: string; tone: AuditTone }> =
   "billing_profile.created": { label: "Perfil fiscal creado", tone: "success" },
   "billing_profile.updated": { label: "Perfil fiscal modificado", tone: "secondary" },
   "billing_profile.deleted": { label: "Perfil fiscal eliminado", tone: "destructive" },
+  "setting.updated": { label: "Configuración modificada", tone: "secondary" },
 };
 
 export const AUDIT_TYPES: Record<string, string> = {
@@ -27,6 +28,7 @@ export const AUDIT_TYPES: Record<string, string> = {
   customer: "Cliente",
   sale_point: "Punto de venta",
   billing_profile: "Perfil fiscal",
+  setting: "Configuración",
 };
 
 const FIELD_LABELS: Record<string, string> = {

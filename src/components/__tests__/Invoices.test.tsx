@@ -47,7 +47,31 @@ describe("Invoices (facturar)", () => {
     await setup();
 
     expect(screen.getByText("Últimos 10 comprobantes emitidos")).toBeTruthy();
-    expect(apiRequest).toHaveBeenCalledWith("/invoices?per_page=10");
+    expect(apiRequest).toHaveBeenCalledWith("/invoices?per_page=50");
+    expect(apiRequest).toHaveBeenCalledWith("/settings");
+  });
+
+  it("muestra tantos comprobantes recientes como indique la Configuración", async () => {
+    const rows = Array.from({ length: 12 }, (_, i) => ({
+      id: i + 1, cbte_nro: 100 - i, total: "10.00", sale_point: { number: 1 }, issue_date: "2026-11-18",
+      afip_environment: "homologacion", customer_id: 1, cae: "1", cae_expiration: "2026-12-01",
+    }));
+    routes["/settings"] = [{ key: "recent_invoices_count", value: 7 }];
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path.startsWith("/invoices")) return rows;
+      return routes[path] ?? [];
+    });
+
+    render(
+      <MemoryRouter>
+        <Invoices />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Últimos 7 comprobantes emitidos")).toBeTruthy();
+    // 7 filas de comprobantes + la fila de encabezado
+    expect(screen.getAllByRole("row")).toHaveLength(8);
+    delete routes["/settings"];
   });
 
   it("no deja escribir más de 2 decimales en precio y cantidad", async () => {

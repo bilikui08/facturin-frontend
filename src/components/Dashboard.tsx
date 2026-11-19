@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { FileText, History, LogOut, Receipt, Store, UserCog, Users } from "lucide-react";
+import { FileText, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,7 +33,11 @@ const sections = [
   { path: "sale-points", label: "Puntos de venta", icon: Store },
   { path: "billing-profile", label: "Datos de facturación", icon: UserCog },
   { path: "audit", label: "Auditoría", icon: History },
+  { path: "trash", label: "Papelera", icon: Trash2 },
 ];
+
+// Va abajo del menú, arriba de "Cerrar sesión"
+const settingsSection = { path: "settings", label: "Configuración", icon: SettingsIcon };
 
 interface DashboardProps {
   onLogout: () => void;
@@ -42,7 +46,7 @@ interface DashboardProps {
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const { pathname } = useLocation();
   const activeSectionLabel =
-    sections.find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
+    [...sections, settingsSection].find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
 
   return (
     <SidebarProvider>
@@ -85,6 +89,18 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
         <SidebarFooter>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.endsWith(`/${settingsSection.path}`)}
+                tooltip={settingsSection.label}
+              >
+                <NavLink to={settingsSection.path}>
+                  <settingsSection.icon aria-hidden="true" />
+                  <span>{settingsSection.label}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={onLogout} tooltip="Cerrar sesión">
                 <LogOut aria-hidden="true" />

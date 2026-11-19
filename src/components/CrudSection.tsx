@@ -32,11 +32,14 @@ import {
 import FormField from "./FormField";
 import LoadingBlock from "./LoadingBlock";
 import StatusAlert from "./StatusAlert";
+import UndoBanner from "./UndoBanner";
+import { ApiError } from "../services/apiClient";
 import {
   createResource,
   deleteResource,
   getResource,
   getResources,
+  restoreResource,
   updateResource,
 } from "../services/crudService";
 import type {
@@ -73,6 +76,12 @@ const normalizeResources = (payload: unknown): Resource[] => {
   return isResource(payload) ? [payload] : [];
 };
 
+/** La última baja, para ofrecer "Deshacer" al momento. Todo lo eliminado también queda en la Papelera. */
+interface LastDeleted {
+  id: ResourceId;
+  label: string;
+}
+
 const getOptionLabel = (option: Resource): string =>
   String(
     option.name ??
@@ -106,6 +115,8 @@ const CrudSection = ({
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Resource | null>(null);
+  const [undoing, setUndoing] = useState(false);
+  const [lastDeleted, setLastDeleted] = useState<LastDeleted | null>(null);
 
   const loadItems = useCallback(async () => {
     setIsLoading(true);
@@ -231,10 +242,34 @@ const CrudSection = ({
 
     try {
       await deleteResource(endpoint, item.id);
-      setSuccessMessage(`${singularName} eliminado correctamente.`);
+
+      // Pasó a la Papelera: se ofrece "Deshacer" al momento (puede cerrarse: sigue en la Papelera)
+      setLastDeleted({ id: item.id, label: String(item[fields[0]?.name] ?? `#${item.id}`) });
+
       await loadItems();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo eliminar");
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!lastDeleted) return;
+
+    setUndoing(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      await restoreResource(endpoint, lastDeleted.id);
+      setLastDeleted(null);
+      setSuccessMessage(`${singularName} restaurado correctamente.`);
+      await loadItems();
+    } catch (err) {
+      // Ya restaurado o no corresponde: el aviso ya no sirve. Un corte de red permite reintentar.
+      if (err instanceof ApiError && (err.status === 404 || err.status === 422)) setLastDeleted(null);
+      setError(err instanceof Error ? err.message : "No se pudo deshacer");
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -263,6 +298,15 @@ const CrudSection = ({
 
       {error && <StatusAlert kind="error">{error}</StatusAlert>}
       {successMessage && <StatusAlert kind="success">{successMessage}</StatusAlert>}
+      {lastDeleted && (
+        <UndoBanner
+          singularName={singularName}
+          label={lastDeleted.label}
+          undoing={undoing}
+          onUndo={handleUndo}
+          onDismiss={() => setLastDeleted(null)}
+        />
+      )}
 
       {isFormOpen && (
         <Card>
@@ -390,7 +434,7 @@ const CrudSection = ({
             <AlertDialogTitle>¿Eliminar {singularName.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
               Dejará de aparecer en las listas, pero los comprobantes ya emitidos con este{" "}
-              {singularName.toLowerCase()} se conservan.
+              {singularName.toLowerCase()} se conservan. Vas a poder restaurarlo desde la Papelera.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

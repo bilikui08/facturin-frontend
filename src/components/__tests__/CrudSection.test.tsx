@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CrudSection from "../CrudSection";
 
@@ -12,16 +13,19 @@ vi.mock("../../services/crudService", () => ({
   createResource: vi.fn(),
   updateResource: vi.fn(),
   deleteResource: (...a: unknown[]) => deleteResource(...a),
+  restoreResource: vi.fn(),
 }));
 
 const renderSection = () =>
   render(
-    <CrudSection
-      title="Clientes"
-      singularName="Cliente"
-      endpoint="/customers"
-      fields={[{ name: "name", label: "Nombre", required: true }]}
-    />,
+    <MemoryRouter>
+      <CrudSection
+        title="Clientes"
+        singularName="Cliente"
+        endpoint="/customers"
+        fields={[{ name: "name", label: "Nombre", required: true }]}
+      />
+    </MemoryRouter>,
   );
 
 describe("CrudSection", () => {
@@ -57,6 +61,6 @@ describe("CrudSection", () => {
     await user.click(within(dialog).getByRole("button", { name: "Eliminar" }));
 
     await waitFor(() => expect(deleteResource).toHaveBeenCalledWith("/customers", 7));
-    expect(await screen.findByText("Cliente eliminado correctamente.")).toBeTruthy();
+    expect(await screen.findByText(/Cliente «.*» eliminado\. Está en la Papelera/)).toBeTruthy();
   });
 });

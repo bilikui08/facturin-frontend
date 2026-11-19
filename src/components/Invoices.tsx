@@ -8,6 +8,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { apiRequest } from "../services/apiClient";
 import InvoiceTable from "./InvoiceTable";
 import type { InvoiceRow } from "../types/invoice";
+import { settingValue, type SettingDefinition } from "../types/settings";
 import { formatMoney } from "../utils/invoiceFormat";
 import DateInput from "./DateInput";
 import FormField from "./FormField";
@@ -37,9 +38,14 @@ interface HeaderForm {
   issue_date: string;
 }
 
-/** Cantidad de comprobantes recientes que se muestran debajo del formulario. */
-const RECENT_INVOICES = 10;
-const RECENT_INVOICES_PATH = `/invoices?per_page=${RECENT_INVOICES}`;
+/**
+ * Cantidad de comprobantes recientes debajo del formulario: la define la Configuración (5 a 50; 10 por defecto).
+ * Se piden siempre los 50 más nuevos y se muestran los que indique el parámetro.
+ */
+const RECENT_SETTING = "recent_invoices_count";
+const RECENT_DEFAULT = 10;
+const RECENT_MAX = 50;
+const RECENT_INVOICES_PATH = `/invoices?per_page=${RECENT_MAX}`;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null;
@@ -89,6 +95,7 @@ const Invoices = () => {
   const [salePoints, setSalePoints] = useState<Resource[]>([]);
   const [paymentConditions, setPaymentConditions] = useState<Resource[]>([]);
   const [invoices, setInvoices] = useState<Resource[]>([]);
+  const [recentCount, setRecentCount] = useState(RECENT_DEFAULT);
   const [header, setHeader] = useState<HeaderForm>(emptyHeader);
   const [items, setItems] = useState<ItemForm[]>([emptyItem()]);
   const [loading, setLoading] = useState(true);
@@ -111,13 +118,15 @@ const Invoices = () => {
       apiRequest("/sale-points"),
       apiRequest("/payment-conditions"),
       apiRequest(RECENT_INVOICES_PATH).catch(() => []),
+      apiRequest<SettingDefinition[]>("/settings").catch(() => []),
     ])
-      .then(([c, s, p, i]) => {
+      .then(([c, s, p, i, cfg]) => {
         if (!current) return;
         setCustomers(normalize(c));
         setSalePoints(normalize(s));
         setPaymentConditions(normalize(p));
         setInvoices(normalize(i));
+        setRecentCount(settingValue(cfg, RECENT_SETTING, RECENT_DEFAULT));
       })
       .catch((err) => {
         if (current) {
@@ -352,7 +361,7 @@ const Invoices = () => {
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="flex flex-row items-center justify-between border-b py-4 [.border-b]:pb-4">
           <CardTitle className="text-base">
-            Últimos {RECENT_INVOICES} comprobantes emitidos
+            Últimos {recentCount} comprobantes emitidos
           </CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/invoices-list">Ver todos / buscar</Link>
@@ -363,7 +372,7 @@ const Invoices = () => {
             <p className="p-8 text-center text-muted-foreground">No hay comprobantes.</p>
           ) : (
             <InvoiceTable
-              invoices={invoices as unknown as InvoiceRow[]}
+              invoices={invoices.slice(0, recentCount) as unknown as InvoiceRow[]}
               customerName={(i) => label(customers, i.customer_id)}
               onChanged={loadInvoices}
             />
