@@ -1,4 +1,4 @@
-import { authApi } from "./organizationService";
+import { call } from "./authApiCall";
 
 export interface Member {
   user_id: number;
@@ -41,28 +41,6 @@ export interface AdminOrganization {
   admin_status?: "assigned" | "invited";
   email_sent?: boolean;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
-
-/** Primer mensaje útil de un error de auth-api: el de validación de un campo, o el general. */
-const errorMessage = (body: unknown, fallback: string): string => {
-  if (!isRecord(body)) return fallback;
-
-  const field = isRecord(body.errors)
-    ? Object.values(body.errors).flatMap((v) => (Array.isArray(v) ? v : [v])).find((v): v is string => typeof v === "string" && v !== "")
-    : undefined;
-
-  return field ?? (typeof body.message === "string" && body.message ? body.message : fallback);
-};
-
-const call = async <T>(path: string, method: string, body?: unknown, signal?: AbortSignal): Promise<T> => {
-  const response = await authApi(path, { method, signal, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-  const parsed: unknown = await response.json().catch(() => null);
-
-  if (!response.ok) throw new Error(errorMessage(parsed, `La solicitud falló (${response.status})`));
-
-  return (isRecord(parsed) && "data" in parsed ? parsed.data : parsed) as T;
-};
 
 // --- Equipo de la empresa activa (permiso org.members.manage)
 export const getMembers = (signal?: AbortSignal) => call<Member[]>("/auth/organization/members", "GET", undefined, signal);

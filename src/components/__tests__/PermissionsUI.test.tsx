@@ -79,12 +79,13 @@ describe("Menú según permisos", () => {
     expect(menu()).toContain("Equipo");
     expect(menu()).not.toContain("Empresas");
     expect(menu()).not.toContain("Sistema");
+    expect(menu()).not.toContain("Roles");
     expect(menu()).not.toContain("Emails");
     unmount();
 
     systemAdmin = true;
     renderDashboard();
-    expect(menu()).toEqual(expect.arrayContaining(["Equipo", "Empresas", "Sistema", "Emails"]));
+    expect(menu()).toEqual(expect.arrayContaining(["Equipo", "Empresas", "Sistema", "Roles", "Emails"]));
   });
 
   it("una sesión anterior a las empresas ve todo el menú de trabajo", () => {

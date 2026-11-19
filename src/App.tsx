@@ -27,6 +27,7 @@ const SalePoints = lazy(() => import("./components/SalePoints"));
 const Team = lazy(() => import("./components/Team"));
 const Companies = lazy(() => import("./components/Companies"));
 const System = lazy(() => import("./components/System"));
+const Roles = lazy(() => import("./components/Roles"));
 const EmailTemplates = lazy(() => import("./components/EmailTemplates"));
 
 type ProfileStatus = "checking" | "missing" | "ready" | "error";
@@ -195,6 +196,7 @@ const App = () => {
           <Route path="team" element={guard("team", <Team />)} />
           <Route path="companies" element={<Companies />} />
           <Route path="system" element={<System />} />
+          <Route path="roles" element={<Roles />} />
           <Route path="emails" element={<EmailTemplates />} />
         </Route>
 
