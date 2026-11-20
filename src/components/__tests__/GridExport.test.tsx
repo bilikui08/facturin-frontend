@@ -116,7 +116,7 @@ describe("Clientes: exportar", () => {
         ? [{ id: 1, name: "Acme SA", document_number: "30711111111", document_type_id: 1, tax_condition_id: 1 }, { id: 2, name: "Beta SRL", document_number: "30722222222", document_type_id: 1, tax_condition_id: 1 }]
         : [],
     );
-    render(<Customers />);
+    render(<MemoryRouter><Customers /></MemoryRouter>);
     await screen.findByText("Acme SA");
   };
 

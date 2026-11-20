@@ -56,7 +56,7 @@ const DateEditor = ({ state, pending, act }: OpeningActions & { state: OpeningSt
  * Apertura de la cuenta corriente: empieza como un borrador (fecha, comprobantes anteriores que se deben, saldos sin comprobante) y se
  * cierra al confirmarla. Cada botón que escribe queda deshabilitado con un spinner desde el primer click (`useAction`).
  */
-const ReceivablesOpening = () => {
+const ReceivablesOpening = ({ onChanged }: { onChanged?: () => void }) => {
   const { can } = useAccess();
   const canManage = can(P.paymentManage);
   const { pending, run } = useAction();
@@ -84,6 +84,7 @@ const ReceivablesOpening = () => {
     if (done) {
       if (success) setNotice(success);
       setVersion((n) => n + 1);
+      onChanged?.();
     }
 
     return done === true;

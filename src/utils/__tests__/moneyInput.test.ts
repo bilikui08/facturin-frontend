@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { todayInArgentina } from "../dates";
-import { filterAmountChars, parseAmount, parsePositiveAmount } from "../moneyInput";
+import { amountToCents, centsToAmount, filterAmountChars, parseAmount, parsePositiveAmount } from "../moneyInput";
 
 describe("filterAmountChars", () => {
   it("deja solo dígitos, puntos y comas, sin interpretar nada", () => {
@@ -51,6 +51,27 @@ describe("parsePositiveAmount", () => {
     expect(parsePositiveAmount("0,00")).toBeNull();
     expect(parsePositiveAmount("")).toBeNull();
     expect(parsePositiveAmount("abc")).toBeNull();
+  });
+});
+
+describe("amountToCents / centsToAmount", () => {
+  it("convierten sin errores de punto flotante", () => {
+    expect(amountToCents("1234.50")).toBe(123450);
+    expect(amountToCents("0.10") + amountToCents("0.20")).toBe(amountToCents("0.30"));
+    expect(amountToCents("9999999999999.99")).toBe(999999999999999);
+    expect(amountToCents("5")).toBe(500);
+    expect(centsToAmount(123450)).toBe("1234.50");
+    expect(centsToAmount(5)).toBe("0.05");
+    expect(centsToAmount(0)).toBe("0.00");
+  });
+
+  it("los negativos conservan el signo (lo imputado de más se ve como faltante, no como saldo)", () => {
+    expect(centsToAmount(-5)).toBe("-0.05");
+    expect(centsToAmount(-123450)).toBe("-1234.50");
+  });
+
+  it("ida y vuelta", () => {
+    for (const amount of ["0.01", "1.00", "99.99", "1000.00", "123456.78"]) expect(centsToAmount(amountToCents(amount))).toBe(amount);
   });
 });
 

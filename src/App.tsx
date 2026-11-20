@@ -20,6 +20,7 @@ import { firstAllowedSection, readAccess } from "./services/access";
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const BillingProfile = lazy(() => import("./components/BillingProfile"));
 const Receivables = lazy(() => import("./components/Receivables"));
+const CustomerStatement = lazy(() => import("./components/receivables/CustomerStatement"));
 const Customers = lazy(() => import("./components/Customers"));
 const Invoices = lazy(() => import("./components/Invoices"));
 const InvoiceSearch = lazy(() => import("./components/InvoiceSearch"));
@@ -195,6 +196,7 @@ const App = () => {
           <Route path="invoices" element={guard("invoices", <Invoices />)} />
           <Route path="invoices-list" element={guard("invoices-list", <InvoiceSearch />)} />
           <Route path="receivables" element={guard("receivables", <Receivables />)} />
+          <Route path="receivables/customer/:id" element={guard("receivables", <CustomerStatement />)} />
           <Route path="customers" element={guard("customers", <Customers />)} />
           <Route path="sale-points" element={guard("sale-points", <SalePoints />)} />
           <Route path="billing-profile" element={guard("billing-profile", <BillingProfile />)} />

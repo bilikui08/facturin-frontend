@@ -72,8 +72,11 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   const visibleSections = sections.filter((section) => canSee(section.path));
   const visibleAdmin = adminSections.filter((section) => (["companies", "system", "emails", "roles"].includes(section.path) ? isSystemAdmin : canSee(section.path)));
 
+  // Una sección también está activa en sus pantallas internas (p. ej. /receivables/customer/5)
+  const inSection = (path: string) => pathname.endsWith(`/${path}`) || pathname.includes(`/${path}/`);
+
   const activeSectionLabel =
-    [...sections, ...adminSections, settingsSection].find((section) => pathname.endsWith(`/${section.path}`))?.label ?? "Dashboard";
+    [...sections, ...adminSections, settingsSection].find((section) => inSection(section.path))?.label ?? "Dashboard";
 
   return (
     <SidebarProvider>
@@ -100,7 +103,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                   <SidebarMenuItem key={path}>
                     <SidebarMenuButton
                       asChild
-                      isActive={pathname.endsWith(`/${path}`)}
+                      isActive={inSection(path)}
                       tooltip={label}
                     >
                       <NavLink to={path}>
@@ -121,7 +124,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                 <SidebarMenu aria-label="Administración">
                   {visibleAdmin.map(({ path, label, icon: Icon }) => (
                     <SidebarMenuItem key={path}>
-                      <SidebarMenuButton asChild isActive={pathname.endsWith(`/${path}`)} tooltip={label}>
+                      <SidebarMenuButton asChild isActive={inSection(path)} tooltip={label}>
                         <NavLink to={path}>
                           <Icon aria-hidden="true" />
                           <span>{label}</span>
@@ -140,7 +143,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.endsWith(`/${settingsSection.path}`)}
+                isActive={inSection(settingsSection.path)}
                 tooltip={settingsSection.label}
               >
                 <NavLink to={settingsSection.path}>

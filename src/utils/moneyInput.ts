@@ -51,3 +51,12 @@ export const parsePositiveAmount = (raw: string): string | null => {
   const parsed = parseAmount(raw);
   return parsed !== null && Number(parsed) > 0 ? parsed : null;
 };
+
+/** Centavos exactos de un importe normalizado ("1234.50" → 123450), sin errores de punto flotante. */
+export const amountToCents = (amount: string): number => {
+  const [integer, decimals = ""] = amount.split(".");
+  return Number(integer) * 100 + Number((decimals + "00").slice(0, 2));
+};
+
+/** Importe normalizado ("1234.50") de una cantidad de centavos. */
+export const centsToAmount = (cents: number): string => `${cents < 0 ? "-" : ""}${Math.trunc(Math.abs(cents) / 100)}.${String(Math.abs(cents) % 100).padStart(2, "0")}`;

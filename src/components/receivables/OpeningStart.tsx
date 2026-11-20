@@ -46,7 +46,7 @@ const OpeningStart = ({ canManage, pending, act }: OpeningStartProps) => {
         <FormField
           label="Fecha de apertura"
           htmlFor="opening-date"
-          hint="No puede ser futura ni anterior al último comprobante emitido. Los comprobantes que ya existen quedan como historia anterior."
+          hint="No puede ser futura. Los comprobantes que ya existen quedan como historia anterior, sea cual sea su fecha."
           className="max-w-xs"
         >
           <DateInput id="opening-date" name="opening_date" value={date} onChange={(_, iso) => setDate(iso)} required />

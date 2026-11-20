@@ -127,6 +127,24 @@ describe("Botones según permisos", () => {
     expect(screen.queryByText("Acciones")).toBeNull();
   });
 
+  it("Clientes: quien ve cobros tiene el botón CC aunque no administre clientes (y no edita ni elimina)", async () => {
+    as([P.customerView, P.paymentView]);
+    render(<MemoryRouter><Customers /></MemoryRouter>);
+
+    const cc = await screen.findByRole("link", { name: "Cuenta corriente de Ana Pérez" });
+    expect(cc.getAttribute("href")).toBe("/dashboard/receivables/customer/1");
+    expect(screen.queryByRole("button", { name: /Editar/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Eliminar/ })).toBeNull();
+  });
+
+  it("Clientes: sin permiso de cobros no hay botón CC", async () => {
+    as([P.customerManage]);
+    render(<MemoryRouter><Customers /></MemoryRouter>);
+
+    expect(await screen.findByText("Ana Pérez")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Cuenta corriente de/ })).toBeNull();
+  });
+
   it("Clientes: con permiso de administrar ve agregar, editar y eliminar", async () => {
     as([P.customerManage]);
     render(<MemoryRouter><Customers /></MemoryRouter>);

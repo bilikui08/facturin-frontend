@@ -1,3 +1,6 @@
+import { Link } from "react-router";
+import { Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import CrudSection from "./CrudSection";
 import type { FieldConfig } from "../types/crud";
 import { P } from "../config/permissions";
@@ -36,6 +39,19 @@ const Customers = () => {
       fields={customerFields}
       readOnly={!can(P.customerManage)}
       // Exportar pide poder ver clientes (poder emitir comprobantes no alcanza: eso es solo para elegir a quién facturar)
+      // Atajo a la cuenta corriente del cliente (solo para quien puede ver cobros)
+      rowActions={
+        can(P.paymentView, P.paymentManage)
+          ? (item) => (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/dashboard/receivables/customer/${item.id}`} aria-label={`Cuenta corriente de ${String(item.name ?? item.id)}`} title="Cuenta corriente">
+                  <Wallet />
+                  CC
+                </Link>
+              </Button>
+            )
+          : undefined
+      }
       exportPath={can(P.customerView) || can(P.customerManage) ? "/customers/export" : undefined}
     />
   );

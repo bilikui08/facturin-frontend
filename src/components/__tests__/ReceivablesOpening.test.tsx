@@ -7,7 +7,7 @@ import { ApiError } from "../../services/apiClient";
 import { signIn, signOut } from "../../test/session";
 import type { CandidateGroup, OpeningItem, OpeningState, OpeningWarning } from "../../types/receivables";
 import { todayInArgentina } from "../../utils/dates";
-import Receivables from "../Receivables";
+import ReceivablesOpening from "../receivables/ReceivablesOpening";
 
 const getOpening = vi.fn();
 const startOpening = vi.fn();
@@ -69,7 +69,7 @@ const deferred = <T,>() => {
   return { promise, resolve, reject };
 };
 
-const renderScreen = () => render(<MemoryRouter><Receivables /></MemoryRouter>);
+const renderScreen = () => render(<MemoryRouter><ReceivablesOpening /></MemoryRouter>);
 
 /** El selector de clientes existe antes de que lleguen sus opciones: se espera a que estén cargadas */
 const customerSelect = async (): Promise<HTMLElement> => {

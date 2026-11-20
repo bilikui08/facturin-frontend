@@ -5,6 +5,7 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import {
@@ -60,6 +61,8 @@ interface CrudSectionProps {
   readOnly?: boolean;
   /** Ruta de la exportación a Excel de esta grilla (por ejemplo `/customers/export`). Sin ella no hay botón de exportar. */
   exportPath?: string;
+  /** Botones extra por fila (por ejemplo "CC" en Clientes). Se muestran aunque la grilla sea de solo consulta. */
+  rowActions?: (item: Resource) => ReactNode;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -104,6 +107,7 @@ const CrudSection = ({
   single = false,
   readOnly = false,
   exportPath,
+  rowActions,
 }: CrudSectionProps) => {
   const emptyForm = useMemo(() => getEmptyForm(fields), [fields]);
   const referenceFields = useMemo(
@@ -398,7 +402,7 @@ const CrudSection = ({
                   {fields.map((field) => (
                     <TableHead key={field.name}>{field.label}</TableHead>
                   ))}
-                  {!readOnly && <TableHead className="text-right">Acciones</TableHead>}
+                  {(!readOnly || rowActions) && <TableHead className="text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -407,9 +411,11 @@ const CrudSection = ({
                     {fields.map((field) => (
                       <TableCell key={field.name}>{columnValue(item, field)}</TableCell>
                     ))}
-                    {!readOnly && (
+                    {(!readOnly || rowActions) && (
                     <TableCell className="text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
+                        {rowActions?.(item)}
+                        {!readOnly && (<>
                         <Button
                           variant="outline"
                           size="sm"
@@ -429,6 +435,7 @@ const CrudSection = ({
                           <Trash2 />
                           Eliminar
                         </Button>
+                        </>)}
                       </div>
                     </TableCell>
                     )}
