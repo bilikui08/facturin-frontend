@@ -164,8 +164,8 @@ const StatementView = ({ customerId }: { customerId: number }) => {
                     <TableHead className="hidden sm:table-cell">Fecha</TableHead>
                     <TableHead>Concepto</TableHead>
                     <TableHead className="text-right sm:hidden">Importe</TableHead>
-                    <TableHead className="hidden text-right sm:table-cell">Debe</TableHead>
-                    <TableHead className="hidden text-right sm:table-cell">Haber</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">Débito</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">Crédito</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                   </TableRow>
                 </TableHeader>

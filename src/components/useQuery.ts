@@ -29,7 +29,10 @@ export const useQuery = <T,>(
 
     latest.current
       .fetcher(controller.signal)
-      .then((data) => setLoaded({ key, data, error: "" }))
+      .then((data) => {
+        // Una respuesta de una consulta ya cancelada (cambiaron las dependencias o React volvió a montar) no debe pisar la vigente
+        if (!controller.signal.aborted) setLoaded({ key, data, error: "" });
+      })
       .catch((err) => {
         if (controller.signal.aborted) return;
         setLoaded({ key, data: null, error: err instanceof Error ? err.message : latest.current.fallbackError });

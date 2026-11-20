@@ -55,7 +55,7 @@ const PaymentsPanel = ({ openingDate }: PaymentsPanelProps) => {
   // La lista de clientes solo la puede pedir quien tenga permiso (la misma regla que GET /customers); sin él no se pide y el listado funciona igual
   const canListCustomers = can(P.customerView, P.customerManage, P.invoiceIssue);
   const { data: customerList, error: customersLoadError } = useQuery(
-    (signal) => (canListCustomers ? getResources<Resource[]>("/customers").then((list) => (signal.aborted ? [] : list)) : Promise.resolve(null)),
+    () => (canListCustomers ? getResources<Resource[]>("/customers") : Promise.resolve(null)),
     [canListCustomers],
     "No se pudieron cargar los clientes",
   );
