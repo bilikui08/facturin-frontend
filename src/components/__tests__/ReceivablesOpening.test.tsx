@@ -71,6 +71,13 @@ const deferred = <T,>() => {
 
 const renderScreen = () => render(<MemoryRouter><Receivables /></MemoryRouter>);
 
+/** El selector de clientes existe antes de que lleguen sus opciones: se espera a que estén cargadas */
+const customerSelect = async (): Promise<HTMLElement> => {
+  const select = await screen.findByLabelText("Cliente");
+  await screen.findByRole("option", { name: "Acme SA" });
+  return select;
+};
+
 const as = (...permissions: string[]) => signIn({ organizationId: 1, permissions });
 
 beforeEach(() => {
@@ -354,7 +361,7 @@ describe("Apertura de la cuenta corriente", () => {
       const add = await screen.findByRole("button", { name: "Agregar saldo" });
       expect(add).toHaveProperty("disabled", true);
 
-      await userEvent.selectOptions(await screen.findByLabelText("Cliente"), "11");
+      await userEvent.selectOptions(await customerSelect(), "11");
       await userEvent.type(screen.getByLabelText("Importe"), "150,25");
       expect(screen.getByText(/Se cargará .*150,25/)).toBeTruthy();
       expect(add).toHaveProperty("disabled", true);                      // falta decir de qué es
@@ -372,7 +379,7 @@ describe("Apertura de la cuenta corriente", () => {
       addOpeningItem.mockRejectedValueOnce(new ApiError("El importe debe ser mayor a cero.", 422));
       renderScreen();
 
-      await userEvent.selectOptions(await screen.findByLabelText("Cliente"), "10");
+      await userEvent.selectOptions(await customerSelect(), "10");
       await userEvent.type(screen.getByLabelText("Importe"), "5");
       await userEvent.type(screen.getByLabelText("De qué es"), "Algo");
       await userEvent.click(screen.getByRole("button", { name: "Agregar saldo" }));
@@ -386,7 +393,7 @@ describe("Apertura de la cuenta corriente", () => {
       addOpeningItem.mockReturnValue(slow.promise);
       renderScreen();
 
-      await userEvent.selectOptions(await screen.findByLabelText("Cliente"), "10");
+      await userEvent.selectOptions(await customerSelect(), "10");
       await userEvent.type(screen.getByLabelText("Importe"), "5");
       await userEvent.type(screen.getByLabelText("De qué es"), "Algo");
       await userEvent.click(screen.getByRole("button", { name: "Agregar saldo" }));
