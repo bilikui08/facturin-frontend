@@ -73,6 +73,23 @@ describe("Menú según permisos", () => {
     expect(menu()).toEqual(["Facturar", "Comprobantes emitidos", "Clientes", "Auditoría", "Papelera", "Configuración"]);
   });
 
+  it("Cuenta corriente aparece con el permiso de ver o de registrar cobros, y no con los de comprobantes", () => {
+    as([P.paymentView]);
+    const viewer = renderDashboard();
+    expect(menu()).toEqual(["Cuenta corriente", "Auditoría", "Configuración"]);
+    viewer.unmount();
+
+    as([P.paymentManage, P.customerView]);
+    const manager = renderDashboard();
+    expect(menu()).toEqual(["Cuenta corriente", "Clientes", "Auditoría", "Configuración"]);
+    manager.unmount();
+
+    // Poder imputar solo no alcanza para ver la sección: lo habilita ver o administrar cobros
+    as([P.paymentAllocate, P.invoiceView, P.invoiceIssue]);
+    renderDashboard();
+    expect(menu()).not.toContain("Cuenta corriente");
+  });
+
   it("Equipo aparece con el permiso de administrar personas; Empresas solo para la administración del sistema", () => {
     as([P.invoiceIssue, P.membersManage]);
     const { unmount } = renderDashboard();
@@ -93,7 +110,7 @@ describe("Menú según permisos", () => {
     renderDashboard();
 
     expect(menu()).toEqual([
-      "Facturar", "Comprobantes emitidos", "Clientes", "Puntos de venta", "Datos de facturación", "Auditoría", "Papelera", "Equipo", "Configuración",
+      "Facturar", "Comprobantes emitidos", "Cuenta corriente", "Clientes", "Puntos de venta", "Datos de facturación", "Auditoría", "Papelera", "Equipo", "Configuración",
     ]);
   });
 });

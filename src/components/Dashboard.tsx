@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { Building2, FileText, Mail, Settings2, ShieldCheck, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users, UsersRound } from "lucide-react";
+import { Building2, FileText, Mail, Settings2, ShieldCheck, History, LogOut, Receipt, Settings as SettingsIcon, Store, Trash2, UserCog, Users, UsersRound, Wallet } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -39,6 +39,7 @@ interface Section {
 const sections: Section[] = [
   { path: "invoices", label: "Facturar", icon: Receipt },
   { path: "invoices-list", label: "Comprobantes emitidos", icon: FileText },
+  { path: "receivables", label: "Cuenta corriente", icon: Wallet },
   { path: "customers", label: "Clientes", icon: Users },
   { path: "sale-points", label: "Puntos de venta", icon: Store },
   { path: "billing-profile", label: "Datos de facturación", icon: UserCog },

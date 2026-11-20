@@ -13,12 +13,16 @@ export const P = {
   trashRestoreAny: "sales.trash.restore-any",
   auditViewAll: "sales.audit.view-all",
   settingsManage: "sales.settings.manage",
+  paymentView: "sales.payment.view",
+  paymentManage: "sales.payment.manage",
+  paymentAllocate: "sales.payment.allocate",
   membersManage: "org.members.manage",
 } as const;
 
 export type SectionKey =
   | "invoices"
   | "invoices-list"
+  | "receivables"
   | "customers"
   | "sale-points"
   | "billing-profile"
@@ -35,6 +39,7 @@ export type SectionKey =
 export const SECTION_PERMISSIONS: Record<SectionKey, readonly string[]> = {
   invoices: [P.invoiceIssue],
   "invoices-list": [P.invoiceView, P.invoiceIssue, P.invoiceAnnul],
+  receivables: [P.paymentView, P.paymentManage],
   customers: [P.customerView, P.customerManage],
   "sale-points": [P.salePointManage],
   "billing-profile": [P.billingProfileManage],

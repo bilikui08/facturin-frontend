@@ -30,13 +30,19 @@ const getErrorMessage = (body: unknown, fallback: string): string => {
 
 export class ApiError extends Error {
   status: number;
+  /** Código estable que informa el servidor (ej. `RECEIVABLES_OPENING_EXISTS`), para reaccionar sin depender del texto. */
+  code: string | null;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
+
+const getErrorCode = (body: unknown): string | null =>
+  isRecord(body) && typeof body.code === "string" && body.code !== "" ? body.code : null;
 
 const send = (path: string, options: RequestInit): Promise<Response> => {
   const authorization = getAuthorizationHeader();
@@ -114,6 +120,7 @@ export const apiRequest = async <T = unknown>(
     throw new ApiError(
       getErrorMessage(body, `La solicitud falló (${response.status})`),
       response.status,
+      getErrorCode(body),
     );
   }
 

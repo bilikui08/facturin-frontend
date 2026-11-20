@@ -19,6 +19,7 @@ import { firstAllowedSection, readAccess } from "./services/access";
 // Cada pantalla se descarga recién cuando se entra a ella: el login (lo primero que se ve) pesa poco.
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const BillingProfile = lazy(() => import("./components/BillingProfile"));
+const Receivables = lazy(() => import("./components/Receivables"));
 const Customers = lazy(() => import("./components/Customers"));
 const Invoices = lazy(() => import("./components/Invoices"));
 const InvoiceSearch = lazy(() => import("./components/InvoiceSearch"));
@@ -193,6 +194,7 @@ const App = () => {
           <Route index element={<Navigate to={homeSection} replace />} />
           <Route path="invoices" element={guard("invoices", <Invoices />)} />
           <Route path="invoices-list" element={guard("invoices-list", <InvoiceSearch />)} />
+          <Route path="receivables" element={guard("receivables", <Receivables />)} />
           <Route path="customers" element={guard("customers", <Customers />)} />
           <Route path="sale-points" element={guard("sale-points", <SalePoints />)} />
           <Route path="billing-profile" element={guard("billing-profile", <BillingProfile />)} />
